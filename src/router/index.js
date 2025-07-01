@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '@/views/LoginView.vue'
 import HomeView from '@/views/HomeView.vue'
+import MainLayout from '@/layouts/MainLayout.vue'
+import UserView from '@/views/UserView.vue'
 
 const routes = [
   {
@@ -13,6 +15,29 @@ const routes = [
     name: 'home',
     component: HomeView,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/',
+    component: MainLayout,
+    redirect: '/user',
+    children: [
+      {
+        path: '/user',
+        name: 'User',
+        component: UserView
+      },
+      // 其他功能路由可在此扩展
+      /*{
+        path: '/product',
+        name: 'Product',
+        component: () => import('@/views/PlaceholderView.vue')
+      },
+      {
+        path: '/order',
+        name: 'Order',
+        component: () => import('@/views/PlaceholderView.vue')
+      }*/
+    ]
   }
 ]
 
