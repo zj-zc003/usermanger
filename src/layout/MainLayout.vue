@@ -28,6 +28,12 @@
           :class="{active: activeMenu === 'product'}" 
           @click="setActiveMenu('product')"
         >产品管理</div>
+        <!-- 新增素材管理菜单项 -->
+        <div 
+          class="menu-item" 
+          :class="{active: activeMenu === 'material'}" 
+          @click="setActiveMenu('material')"
+        >素材管理</div>
         <div 
           class="menu-item" 
           :class="{active: activeMenu === 'order'}" 
@@ -70,6 +76,7 @@ import { ref, markRaw } from 'vue'
 import { useAuthStore } from '@/store/auth'
 //import UserManagementView from '@/views/UserManagementView.vue'
 import UserView from '@/views/UserView.vue'
+import MaterialView from '@/views/MaterialView.vue'
 
 const authStore = useAuthStore()
 
@@ -82,7 +89,12 @@ const setActiveMenu = (menu) => {
   activeMenu.value = menu
   if (menu === 'user') {
     currentComponent.value = markRaw(UserView)
-  } else {
+  }// 新增素材管理分支
+  else if (menu === 'material') {
+    currentComponent.value = markRaw(MaterialView)
+  }  
+  
+  else {
     currentComponent.value = markRaw({
       template: `<div class="placeholder-view">
                   <h2 class="page-title">${menu === 'product' ? '产品管理' : 

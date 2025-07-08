@@ -3,6 +3,7 @@ import LoginView from '@/views/LoginView.vue'
 import HomeView from '@/views/HomeView.vue'
 import MainLayout from '@/layouts/MainLayout.vue'
 import UserManagementView from '@/views/UserManagementView.vue'
+import MaterialManagement from '@/views/MaterialManagement.vue'
 
 const routes = [
   {
@@ -15,6 +16,11 @@ const routes = [
     name: 'home',
     component: HomeView,
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/materials',
+    name: 'MaterialManagement',
+    component: MaterialManagement
   },
   {
     path: '/',
