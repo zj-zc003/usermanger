@@ -2,7 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import LoginView from '@/views/LoginView.vue'
 import HomeView from '@/views/HomeView.vue'
 import MainLayout from '@/layouts/MainLayout.vue'
-import UserView from '@/views/UserView.vue'
+import UserManagementView from '@/views/UserManagementView.vue'
+import MaterialManagement from '@/views/MaterialManagement.vue'
 
 const routes = [
   {
@@ -17,14 +18,19 @@ const routes = [
     meta: { requiresAuth: true }
   },
   {
+    path: '/materials',
+    name: 'MaterialManagement',
+    component: MaterialManagement
+  },
+  {
     path: '/',
     component: MainLayout,
     redirect: '/user',
     children: [
       {
         path: '/user',
-        name: 'User',
-        component: UserView
+        name: 'UserManagement',
+        component: UserManagementView
       },
       // 其他功能路由可在此扩展
       /*{

@@ -1,7 +1,9 @@
 <template>
   <div id="app">
     <LoginForm v-if="!authStore.isAuthenticated" />
-    <MainLayout v-else />
+    <MainLayout 
+     
+     v-else />
     <!--<MainLayout />-->
   </div>
 </template>
@@ -11,6 +13,7 @@ import { useAuthStore } from '@/store/auth'
 import LoginForm from '@/components/LoginForm.vue'
 //import HomePage from '@/components/HomePage.vue'
 import MainLayout from './layout/MainLayout.vue'
+
 
 const authStore = useAuthStore()
 </script>
