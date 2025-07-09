@@ -25,15 +25,20 @@
         >用户管理</div>
         <div 
           class="menu-item" 
-          :class="{active: activeMenu === 'product'}" 
-          @click="setActiveMenu('product')"
-        >产品管理</div>
+          :class="{active: activeMenu === 'role'}" 
+          @click="setActiveMenu('role')"
+        >权限管理</div>
         <!-- 新增素材管理菜单项 -->
         <div 
           class="menu-item" 
           :class="{active: activeMenu === 'material'}" 
           @click="setActiveMenu('material')"
         >素材管理</div>
+        <div 
+          class="menu-item" 
+          :class="{active: activeMenu === 'course'}" 
+          @click="setActiveMenu('course')"
+        >课程管理</div>
         <div 
           class="menu-item" 
           :class="{active: activeMenu === 'order'}" 
@@ -77,6 +82,8 @@ import { useAuthStore } from '@/store/auth'
 //import UserManagementView from '@/views/UserManagementView.vue'
 import UserView from '@/views/UserView.vue'
 import MaterialView from '@/views/MaterialView.vue'
+import CourseView from '@/views/CourseView.vue'
+import roleView from '@/views/RoleView.vue'
 
 const authStore = useAuthStore()
 
@@ -92,12 +99,17 @@ const setActiveMenu = (menu) => {
   }// 新增素材管理分支
   else if (menu === 'material') {
     currentComponent.value = markRaw(MaterialView)
-  }  
+  } else if (menu === 'course') {
+    currentComponent.value = markRaw(CourseView)
+  }
+  else if (menu === 'role') {
+    currentComponent.value = markRaw(roleView)
+  }    
   
   else {
     currentComponent.value = markRaw({
       template: `<div class="placeholder-view">
-                  <h2 class="page-title">${menu === 'product' ? '产品管理' : 
+                  <h2 class="page-title">${menu === 'role' ? '权限管理' : 
                   menu === 'order' ? '订单管理' : 
                   menu === 'setting' ? '系统设置' : 
                   menu === 'report' ? '数据报表' : 

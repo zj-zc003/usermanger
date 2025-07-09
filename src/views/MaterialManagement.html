@@ -1,0 +1,669 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>素材管理 - 知识付费系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .main-layout {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* 顶部导航栏 */
+        .header {
+            height: 60px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            border-bottom: 1px solid #e0e6ed;
+        }
+
+        .system-name {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .user-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #409eff;
+        }
+
+        .username {
+            font-size: 14px;
+            color: #555;
+        }
+
+        .container {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        /* 侧边导航 */
+        .sidebar {
+            width: 200px;
+            background: #fff;
+            padding: 20px 0;
+            border-right: 1px solid #e0e6ed;
+        }
+
+        .menu-item {
+            padding: 12px 25px;
+            font-size: 14px;
+            color: #555;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+
+        .menu-item:hover {
+            background: #f0f7ff;
+            color: #409eff;
+        }
+
+        .menu-item.active {
+            background: #f0f7ff;
+            color: #409eff;
+            border-right: 3px solid #409eff;
+        }
+
+        .sub-header {
+            margin-top: 20px;
+            padding: 10px 25px 5px;
+            font-size: 12px;
+            color: #999;
+            letter-spacing: 1px;
+        }
+
+        .sub-item {
+            padding: 10px 25px 10px 35px;
+            font-size: 13px;
+            color: #777;
+            cursor: pointer;
+        }
+
+        .sub-item:hover {
+            color: #409eff;
+        }
+
+        /* 主内容区 */
+        .content {
+            flex: 1;
+            padding: 25px;
+            overflow-y: auto;
+        }
+
+        /* 素材管理页面样式 */
+        .material-management {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .material-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 25px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e0e6ed;
+        }
+
+        .page-title h1 {
+            font-size: 22px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .page-title p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .actions {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .btn-primary {
+            background-color: #409eff;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background-color: #337ecc;
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #dcdfe6;
+            color: #606266;
+        }
+
+        .btn-outline:hover {
+            background-color: #f5f7fa;
+        }
+
+        .content-wrapper {
+            display: flex;
+            gap: 20px;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .filter-panel {
+            width: 220px;
+            background: #fff;
+            border-radius: 8px;
+            padding: 16px;
+            height: fit-content;
+            border: 1px solid #ebeef5;
+        }
+
+        .filter-group {
+            margin-bottom: 18px;
+        }
+
+        .filter-group h3 {
+            font-size: 15px;
+            margin-bottom: 10px;
+            color: #606266;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #ebeef5;
+        }
+
+        .filter-options {
+            list-style: none;
+            padding: 0;
+        }
+
+        .filter-options li {
+            margin-bottom: 8px;
+        }
+
+        .filter-options a {
+            display: block;
+            padding: 6px 10px;
+            border-radius: 4px;
+            color: #606266;
+            text-decoration: none;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+
+        .filter-options a:hover {
+            background-color: #f0f7ff;
+            color: #409eff;
+        }
+
+        .filter-options a.active {
+            background-color: #ecf5ff;
+            color: #409eff;
+        }
+
+        .search-box {
+            position: relative;
+            margin-bottom: 15px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #dcdfe6;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .material-container {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 8px;
+        }
+
+        .material-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 18px;
+        }
+
+        .material-card {
+            background: #fff;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: transform 0.2s;
+            border: 1px solid #ebeef5;
+        }
+
+        .material-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        }
+
+        .card-thumb {
+            height: 140px;
+            background-color: #f0f4f8;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .image-thumb {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .file-icon {
+            font-size: 36px;
+            color: #409eff;
+            font-weight: bold;
+        }
+
+        .card-tag {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: rgba(255,255,255,0.95);
+            padding: 3px 8px;
+            border-radius: 30px;
+            font-size: 12px;
+            font-weight: 500;
+            border: 1px solid #ebeef5;
+        }
+
+        .card-body {
+            padding: 16px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            min-height: 42px;
+        }
+
+        .card-meta {
+            display: flex;
+            justify-content: space-between;
+            color: #909399;
+            font-size: 13px;
+            margin-bottom: 12px;
+        }
+
+        .card-actions {
+            display: flex;
+            justify-content: space-between;
+            border-top: 1px solid #ebeef5;
+            padding-top: 12px;
+        }
+
+        .action-btn {
+            color: #606266;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            transition: color 0.2s;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .action-btn:hover {
+            background: #f5f7fa;
+            color: #409eff;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 50px 30px;
+            background: #fff;
+            border-radius: 8px;
+            border: 1px solid #ebeef5;
+        }
+
+        .empty-state h3 {
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .empty-state p {
+            color: #666;
+            margin-bottom: 20px;
+            max-width: 400px;
+        }
+
+        /* 响应式设计 */
+        @media (max-width: 992px) {
+            .content-wrapper {
+                flex-direction: column;
+            }
+            
+            .filter-panel {
+                width: 100%;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .material-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+            
+            .actions {
+                width: 100%;
+            }
+            
+            .btn {
+                flex: 1;
+                justify-content: center;
+            }
+            
+            .material-grid {
+                grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-layout">
+        <!-- 顶部导航栏 -->
+        <header class="header">
+            <div class="system-name">知识付费系统</div>
+            <div class="user-info">
+                <div class="user-avatar"></div>
+                <span class="username">管理员</span>
+            </div>
+        </header>
+
+        <div class="container">
+            <!-- 侧边导航 -->
+            <aside class="sidebar">
+                <div class="menu-item">用户管理</div>
+                <div class="menu-item">产品管理</div>
+                <div class="menu-item active">素材管理</div>
+                <div class="menu-item">订单管理</div>
+                <div class="menu-item">系统设置</div>
+                
+                <div class="sub-header">其他功能</div>
+                <div class="sub-item">数据报表</div>
+                <div class="sub-item">操作日志</div>
+                <div class="sub-item">帮助中心</div>
+            </aside>
+
+            <!-- 主内容区 - 素材管理 -->
+            <main class="content">
+                <div class="material-management">
+                    <!-- 素材管理头部 -->
+                    <div class="material-header">
+                        <div class="page-title">
+                            <h1>素材管理</h1>
+                            <p>管理您的所有教学素材，包括图片、文档、视频等</p>
+                        </div>
+                        <div class="actions">
+                            <button class="btn btn-outline">筛选</button>
+                            <button class="btn btn-primary">上传素材</button>
+                        </div>
+                    </div>
+
+                    <!-- 内容区域 -->
+                    <div class="content-wrapper">
+                        <!-- 左侧筛选面板 -->
+                        <div class="filter-panel">
+                            <div class="search-box">
+                                <input type="text" placeholder="搜索素材...">
+                            </div>
+                            
+                            <div class="filter-group">
+                                <h3>素材分类</h3>
+                                <ul class="filter-options">
+                                    <li><a href="#" class="active">全部素材</a></li>
+                                    <li><a href="#">图片</a></li>
+                                    <li><a href="#">文档</a></li>
+                                    <li><a href="#">视频</a></li>
+                                    <li><a href="#">音频</a></li>
+                                    <li><a href="#">压缩包</a></li>
+                                </ul>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <h3>素材标签</h3>
+                                <ul class="filter-options">
+                                    <li><a href="#">常用素材</a></li>
+                                    <li><a href="#">课程资料</a></li>
+                                    <li><a href="#">营销素材</a></li>
+                                    <li><a href="#">用户案例</a></li>
+                                </ul>
+                            </div>
+                            
+                            <div class="filter-group">
+                                <h3>排序方式</h3>
+                                <ul class="filter-options">
+                                    <li><a href="#" class="active">最新上传</a></li>
+                                    <li><a href="#">名称排序</a></li>
+                                    <li><a href="#">文件大小</a></li>
+                                </ul>
+                            </div>
+                        </div>
+
+                        <!-- 素材展示区域 -->
+                        <div class="material-container">
+                            <div class="material-grid">
+                                <!-- 素材卡片 1 -->
+                                <div class="material-card">
+                                    <div class="card-thumb">
+                                        <span class="file-icon">IMG</span>
+                                        <span class="card-tag">图片</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <h3 class="card-title">2023年春季课程封面设计</h3>
+                                        <div class="card-meta">
+                                            <span>1.2 MB</span>
+                                            <span>2023-02-15</span>
+                                        </div>
+                                        <div class="card-actions">
+                                            <button class="action-btn">下载</button>
+                                            <button class="action-btn">复制链接</button>
+                                            <button class="action-btn">更多</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 素材卡片 2 -->
+                                <div class="material-card">
+                                    <div class="card-thumb">
+                                        <span class="file-icon">PDF</span>
+                                        <span class="card-tag">文档</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <h3 class="card-title">JavaScript高级编程讲义</h3>
+                                        <div class="card-meta">
+                                            <span>3.4 MB</span>
+                                            <span>2023-03-10</span>
+                                        </div>
+                                        <div class="card-actions">
+                                            <button class="action-btn">下载</button>
+                                            <button class="action-btn">复制链接</button>
+                                            <button class="action-btn">更多</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 素材卡片 3 -->
+                                <div class="material-card">
+                                    <div class="card-thumb">
+                                        <span class="file-icon">IMG</span>
+                                        <span class="card-tag">图片</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <h3 class="card-title">618促销活动营销海报</h3>
+                                        <div class="card-meta">
+                                            <span>2.1 MB</span>
+                                            <span>2023-05-20</span>
+                                        </div>
+                                        <div class="card-actions">
+                                            <button class="action-btn">下载</button>
+                                            <button class="action-btn">复制链接</button>
+                                            <button class="action-btn">更多</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 素材卡片 4 -->
+                                <div class="material-card">
+                                    <div class="card-thumb">
+                                        <span class="file-icon">VID</span>
+                                        <span class="card-tag">视频</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <h3 class="card-title">Vue3.0实战教学视频</h3>
+                                        <div class="card-meta">
+                                            <span>124 MB</span>
+                                            <span>2023-04-05</span>
+                                        </div>
+                                        <div class="card-actions">
+                                            <button class="action-btn">下载</button>
+                                            <button class="action-btn">复制链接</button>
+                                            <button class="action-btn">更多</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 素材卡片 5 -->
+                                <div class="material-card">
+                                    <div class="card-thumb">
+                                        <span class="file-icon">AUD</span>
+                                        <span class="card-tag">音频</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <h3 class="card-title">产品功能介绍语音解说</h3>
+                                        <div class="card-meta">
+                                            <span>8.7 MB</span>
+                                            <span>2023-03-22</span>
+                                        </div>
+                                        <div class="card-actions">
+                                            <button class="action-btn">下载</button>
+                                            <button class="action-btn">复制链接</button>
+                                            <button class="action-btn">更多</button>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- 素材卡片 6 -->
+                                <div class="material-card">
+                                    <div class="card-thumb">
+                                        <span class="file-icon">DOC</span>
+                                        <span class="card-tag">文档</span>
+                                    </div>
+                                    <div class="card-body">
+                                        <h3 class="card-title">用户案例收集模板</h3>
+                                        <div class="card-meta">
+                                            <span>0.8 MB</span>
+                                            <span>2023-01-18</span>
+                                        </div>
+                                        <div class="card-actions">
+                                            <button class="action-btn">下载</button>
+                                            <button class="action-btn">复制链接</button>
+                                            <button class="action-btn">更多</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // 卡片悬停效果
+            const cards = document.querySelectorAll('.material-card');
+            cards.forEach(card => {
+                card.addEventListener('mouseenter', function() {
+                    this.style.transform = 'translateY(-3px)';
+                });
+                
+                card.addEventListener('mouseleave', function() {
+                    this.style.transform = 'translateY(0)';
+                });
+            });
+            
+            // 筛选选项点击效果
+            const filterOptions = document.querySelectorAll('.filter-options a');
+            filterOptions.forEach(option => {
+                option.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    
+                    // 移除同组所有active类
+                    const groupItems = this.parentNode.parentNode.querySelectorAll('a');
+                    groupItems.forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    
+                    // 添加active类到当前选项
+                    this.classList.add('active');
+                });
+            });
+            
+            // 上传按钮点击效果
+            const uploadBtn = document.querySelector('.btn-primary');
+            uploadBtn.addEventListener('click', function() {
+                alert('上传功能将在后续版本中开放');
+            });
+        });
+    </script>
+</body>
+</html>

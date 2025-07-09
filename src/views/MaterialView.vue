@@ -1,536 +1,545 @@
 <template>
-  <div class="material-manager">
-    <div class="manager-header">
-      <h2 class="page-title">素材管理</h2>
-      <div class="header-actions">
-        <el-select v-model="currentType" placeholder="选择素材类型" class="type-select">
-          <el-option label="全部素材" value="all"></el-option>
-          <el-option label="图片" value="image"></el-option>
-          <el-option label="视频" value="video"></el-option>
-          <el-option label="电子书" value="ebook"></el-option>
-        </el-select>
-        
-        <el-input
-          v-model="searchKeyword"
-          placeholder="搜索素材名称"
-          class="search-input"
-          prefix-icon="el-icon-search"
-          clearable
-        />
-        
-        <el-button type="primary" icon="el-icon-upload" @click="showUploadDialog">上传素材</el-button>
+  <div class="material-management">
+    <!-- 素材管理头部 -->
+    <div class="material-header">
+      <div class="page-title">
+        <h1>素材管理</h1>
+        <p>管理您的所有教学素材，包括图片、文档、视频等</p>
+      </div>
+      <div class="actions">
+        <button class="btn btn-outline" @click="toggleFilterPanel">筛选</button>
+        <button class="btn btn-primary" @click="handleUpload">上传素材</button>
       </div>
     </div>
-    
-    <div class="material-content">
-      <!-- 素材列表 -->
-      <div v-if="filteredMaterials.length > 0" class="material-grid">
-        <div v-for="item in filteredMaterials" :key="item.id" class="material-item">
-          <div class="material-preview" @click="previewMaterial(item)">
-            <!-- 图片预览 -->
-            <img 
-              v-if="item.type === 'image'" 
-              :src="item.url" 
-              :alt="item.name"
-              class="preview-image"
-            />
-            
-            <!-- 视频预览 -->
-            <div v-else-if="item.type === 'video'" class="video-preview">
-              <i class="el-icon-video-play"></i>
-              <video :src="item.url" class="preview-video"></video>
+
+    <!-- 内容区域 -->
+    <div class="content-wrapper">
+      <!-- 左侧筛选面板 -->
+      <div class="filter-panel" :class="{ 'mobile-hidden': !showFilterPanel }">
+        <div class="search-box">
+          <input type="text" placeholder="搜索素材..." v-model="searchKeyword">
+        </div>
+        
+        <div class="filter-group">
+          <h3>素材分类</h3>
+          <ul class="filter-options">
+            <li><a href="#" :class="{active: activeCategory === 'all'}" @click.prevent="setActiveCategory('all')">全部素材</a></li>
+            <li><a href="#" :class="{active: activeCategory === 'image'}" @click.prevent="setActiveCategory('image')">图片</a></li>
+            <li><a href="#" :class="{active: activeCategory === 'document'}" @click.prevent="setActiveCategory('document')">文档</a></li>
+            <li><a href="#" :class="{active: activeCategory === 'video'}" @click.prevent="setActiveCategory('video')">视频</a></li>
+            <li><a href="#" :class="{active: activeCategory === 'audio'}" @click.prevent="setActiveCategory('audio')">音频</a></li>
+            <li><a href="#" :class="{active: activeCategory === 'archive'}" @click.prevent="setActiveCategory('archive')">压缩包</a></li>
+          </ul>
+        </div>
+        
+        <div class="filter-group">
+          <h3>素材标签</h3>
+          <ul class="filter-options">
+            <li><a href="#" :class="{active: activeTag === 'common'}" @click.prevent="setActiveTag('common')">常用素材</a></li>
+            <li><a href="#" :class="{active: activeTag === 'course'}" @click.prevent="setActiveTag('course')">课程资料</a></li>
+            <li><a href="#" :class="{active: activeTag === 'marketing'}" @click.prevent="setActiveTag('marketing')">营销素材</a></li>
+            <li><a href="#" :class="{active: activeTag === 'case'}" @click.prevent="setActiveTag('case')">用户案例</a></li>
+          </ul>
+        </div>
+        
+        <div class="filter-group">
+          <h3>排序方式</h3>
+          <ul class="filter-options">
+            <li><a href="#" :class="{active: sortBy === 'date'}" @click.prevent="setSortBy('date')">最新上传</a></li>
+            <li><a href="#" :class="{active: sortBy === 'name'}" @click.prevent="setSortBy('name')">名称排序</a></li>
+            <li><a href="#" :class="{active: sortBy === 'size'}" @click.prevent="setSortBy('size')">文件大小</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- 素材展示区域 -->
+      <div class="material-container">
+        <div class="material-grid">
+          <!-- 素材卡片 -->
+          <div 
+            v-for="(material, index) in filteredMaterials" 
+            :key="index"
+            class="material-card"
+            :style="{ 
+              transform: hoverIndex === index ? 'translateY(-3px)' : 'none',
+              boxShadow: hoverIndex === index ? '0 4px 12px rgba(0,0,0,0.08)' : '0 2px 8px rgba(0,0,0,0.06)'
+            }"
+            @mouseenter="hoverIndex = index"
+            @mouseleave="hoverIndex = -1"
+          >
+            <div class="card-thumb">
+              <span class="file-icon">{{ getFileIcon(material.type) }}</span>
+              <span class="card-tag">{{ getTypeName(material.type) }}</span>
             </div>
-            
-            <!-- 电子书预览 -->
-            <div v-else class="ebook-preview">
-              <i class="el-icon-document"></i>
-              <span>{{ getFileExtension(item.name) }}</span>
-            </div>
-            
-            <!-- 操作按钮 -->
-            <div class="item-actions">
-              <el-button 
-                size="mini" 
-                icon="el-icon-download" 
-                @click.stop="downloadMaterial(item)"
-              />
-              <el-button 
-                size="mini" 
-                icon="el-icon-delete" 
-                type="danger" 
-                @click.stop="deleteMaterial(item.id)"
-              />
-            </div>
-          </div>
-          
-          <div class="material-info">
-            <div class="material-name">{{ item.name }}</div>
-            <div class="material-meta">
-              <span>{{ formatFileSize(item.size) }}</span>
-              <span>{{ formatDate(item.uploadTime) }}</span>
+            <div class="card-body">
+              <h3 class="card-title">{{ material.title }}</h3>
+              <div class="card-meta">
+                <span>{{ formatFileSize(material.size) }}</span>
+                <span>{{ material.date }}</span>
+              </div>
+              <div class="card-actions">
+                <button class="action-btn" @click="downloadMaterial(material)">下载</button>
+                <button class="action-btn" @click="copyLink(material)">复制链接</button>
+                <button class="action-btn" @click="showMoreOptions(material)">更多</button>
+              </div>
             </div>
           </div>
         </div>
+        
+        <!-- 空状态提示 -->
+        <div v-if="filteredMaterials.length === 0" class="empty-state">
+          <h3>暂无素材</h3>
+          <p>点击"上传素材"按钮添加您的第一个素材</p>
+          <button class="btn btn-primary" @click="handleUpload">上传素材</button>
+        </div>
       </div>
-      
-      <!-- 空状态 -->
-      <el-empty v-else description="暂无素材数据" class="empty-state">
-        <el-button type="primary" @click="showUploadDialog">上传素材</el-button>
-      </el-empty>
     </div>
-    
-    <!-- 上传对话框 -->
-    <el-dialog 
-      title="上传素材" 
-      v-model="uploadDialogVisible" 
-      width="500px"
-      :close-on-click-modal="false"
-    >
-      <el-upload
-        class="material-uploader"
-        drag
-        multiple
-        :action="uploadUrl"
-        :before-upload="beforeUpload"
-        :on-success="handleUploadSuccess"
-        :on-error="handleUploadError"
-        :file-list="fileList"
-        :show-file-list="true"
-      >
-        <i class="el-icon-upload"></i>
-        <div class="el-upload__text">将文件拖到此处，或<em>点击上传</em></div>
-        <div class="el-upload__tip">
-          支持格式：图片(JPG/PNG/GIF/最大5MB)、视频(MP4/最大50MB)、电子书(PDF/EPUB/最大20MB)
-        </div>
-      </el-upload>
-      <template #footer>
-        <div class="dialog-footer">
-          <el-button @click="uploadDialogVisible = false">取消</el-button>
-          <el-button type="primary" @click="uploadDialogVisible = false">完成</el-button>
-        </div>
-      </template>
-    </el-dialog>
-    
-    <!-- 预览对话框 -->
-    <el-dialog 
-      v-model="previewDialogVisible" 
-      :title="previewMaterialInfo?.name || '素材预览'"
-      width="80%"
-      top="5vh"
-    >
-      <div v-if="previewMaterialInfo?.type === 'image'" class="preview-container">
-        <img :src="previewMaterialInfo.url" class="preview-full-image" />
-      </div>
-      
-      <div v-else-if="previewMaterialInfo?.type === 'video'" class="preview-container">
-        <video :src="previewMaterialInfo.url" controls class="preview-full-video"></video>
-      </div>
-      
-      <div v-else-if="previewMaterialInfo" class="preview-container">
-        <div class="ebook-preview-large">
-          <i class="el-icon-document" style="font-size: 80px;"></i>
-          <div class="ebook-info">
-            <p>文件格式: {{ getFileExtension(previewMaterialInfo.name) }}</p>
-            <p>文件大小: {{ formatFileSize(previewMaterialInfo.size) }}</p>
-            <el-button 
-              type="primary" 
-              icon="el-icon-download"
-              @click="downloadMaterial(previewMaterialInfo)"
-            >
-              下载电子书
-            </el-button>
-          </div>
-        </div>
-      </div>
-    </el-dialog>
   </div>
 </template>
 
 <script>
-import { ref, computed } from 'vue'
-
 export default {
   name: 'MaterialView',
-  setup() {
-    const currentType = ref('all')
-    const searchKeyword = ref('')
-    const uploadDialogVisible = ref(false)
-    const previewDialogVisible = ref(false)
-    const fileList = ref([])
-    const previewMaterialInfo = ref({})
-    
-    // 模拟数据
-    const materials = ref([
-      {
-        id: 1,
-        name: '产品主图.jpg',
-        type: 'image',
-        url: 'https://dummyimage.com/600x400/4a86e8/ffffff',
-        size: 1024 * 120,
-        uploadTime: new Date(2023, 5, 15)
-      },
-      {
-        id: 2,
-        name: '宣传视频.mp4',
-        type: 'video',
-        url: 'https://example.com/sample.mp4',
-        size: 1024 * 1024 * 25,
-        uploadTime: new Date(2023, 6, 2)
-      },
-      {
-        id: 3,
-        name: '用户手册.pdf',
-        type: 'ebook',
-        url: 'https://example.com/manual.pdf',
-        size: 1024 * 512,
-        uploadTime: new Date(2023, 6, 10)
-      },
-      {
-        id: 4,
-        name: 'banner背景.png',
-        type: 'image',
-        url: 'https://dummyimage.com/800x200/00cc66/ffffff',
-        size: 1024 * 85,
-        uploadTime: new Date(2023, 6, 18)
-      }
-    ])
-    
-    // 计算属性：过滤后的素材列表
-    const filteredMaterials = computed(() => {
-      let filtered = materials.value
-      
-      // 按类型过滤
-      if (currentType.value !== 'all') {
-        filtered = filtered.filter(item => item.type === currentType.value)
-      }
-      
-      // 按关键词搜索
-      if (searchKeyword.value) {
-        const keyword = searchKeyword.value.toLowerCase()
-        filtered = filtered.filter(item => 
-          item.name.toLowerCase().includes(keyword)
-        )
-      }
-      
-      return filtered
-    })
-    
-    // 格式化函数直接内联实现
-    const formatFileSize = (bytes) => {
-      if (bytes === 0) return '0 B'
-      const k = 1024
-      const sizes = ['B', 'KB', 'MB', 'GB']
-      const i = Math.floor(Math.log(bytes) / Math.log(k))
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-    }
-    
-    const formatDate = (date) => {
-      if (!(date instanceof Date)) return ''
-      const year = date.getFullYear()
-      const month = String(date.getMonth() + 1).padStart(2, '0')
-      const day = String(date.getDate()).padStart(2, '0')
-      return `${year}-${month}-${day}`
-    }
-    
+  data() {
     return {
-      currentType,
-      searchKeyword,
-      uploadDialogVisible,
-      previewDialogVisible,
-      fileList,
-      previewMaterialInfo,
-      materials,
-      filteredMaterials,
-      formatFileSize,
-      formatDate,
-      // 其他方法...
+      searchKeyword: '',
+      activeCategory: 'all',
+      activeTag: '',
+      sortBy: 'date',
+      hoverIndex: -1,
+      showFilterPanel: true,
+      materials: [
+        {
+          id: 1,
+          title: '2023年春季课程封面设计',
+          type: 'image',
+          size: 1200000,
+          date: '2023-02-15',
+          tags: ['course', 'common']
+        },
+        {
+          id: 2,
+          title: 'JavaScript高级编程讲义',
+          type: 'document',
+          size: 3400000,
+          date: '2023-03-10',
+          tags: ['course']
+        },
+        {
+          id: 3,
+          title: '618促销活动营销海报',
+          type: 'image',
+          size: 2100000,
+          date: '2023-05-20',
+          tags: ['marketing']
+        },
+        {
+          id: 4,
+          title: 'Vue3.0实战教学视频',
+          type: 'video',
+          size: 124000000,
+          date: '2023-04-05',
+          tags: ['course', 'common']
+        },
+        {
+          id: 5,
+          title: '产品功能介绍语音解说',
+          type: 'audio',
+          size: 8700000,
+          date: '2023-03-22',
+          tags: ['case']
+        },
+        {
+          id: 6,
+          title: '用户案例收集模板',
+          type: 'document',
+          size: 800000,
+          date: '2023-01-18',
+          tags: ['case']
+        }
+      ]
+    };
+  },
+  computed: {
+    filteredMaterials() {
+      let result = [...this.materials];
+      
+      // 搜索过滤
+      if (this.searchKeyword) {
+        const keyword = this.searchKeyword.toLowerCase();
+        result = result.filter(m => 
+          m.title.toLowerCase().includes(keyword) || 
+          (m.tags && m.tags.some(tag => tag.includes(keyword)))
+        );
+      }
+      
+      // 分类过滤
+      if (this.activeCategory !== 'all') {
+        result = result.filter(m => m.type === this.activeCategory);
+      }
+      
+      // 标签过滤
+      if (this.activeTag) {
+        result = result.filter(m => m.tags && m.tags.includes(this.activeTag));
+      }
+      
+      // 排序
+      if (this.sortBy === 'date') {
+        result.sort((a, b) => new Date(b.date) - new Date(a.date));
+      } else if (this.sortBy === 'name') {
+        result.sort((a, b) => a.title.localeCompare(b.title));
+      } else if (this.sortBy === 'size') {
+        result.sort((a, b) => b.size - a.size);
+      }
+      
+      return result;
     }
   },
   methods: {
-    getFileExtension(name) {
-      if (!name) return ''
-      const parts = name.split('.')
-      return parts.length > 1 ? parts.pop().toUpperCase() : '未知'
+    setActiveCategory(category) {
+      this.activeCategory = category;
     },
-    
-    showUploadDialog() {
-      this.uploadDialogVisible = true
-      this.fileList = []
+    setActiveTag(tag) {
+      this.activeTag = this.activeTag === tag ? '' : tag;
     },
-    
-    beforeUpload(file) {
-      const isImage = ['image/jpeg', 'image/png', 'image/gif'].includes(file.type)
-      const isVideo = file.type.startsWith('video/')
-      const isEbook = ['application/pdf', 'application/epub+zip'].includes(file.type)
-      
-      if (!isImage && !isVideo && !isEbook) {
-        this.$message.error('不支持的文件格式!')
-        return false
-      }
-      
-      // 检查文件大小
-      let maxSize = 5 * 1024 * 1024 // 默认5MB
-      if (isVideo) maxSize = 50 * 1024 * 1024
-      if (isEbook) maxSize = 20 * 1024 * 1024
-      
-      if (file.size > maxSize) {
-        this.$message.error(`文件大小不能超过${this.formatFileSize(maxSize)}!`)
-        return false
-      }
-      
-      return true
+    setSortBy(by) {
+      this.sortBy = by;
     },
-    
-    handleUploadSuccess(response, file) {
-      this.$message.success(`${file.name} 上传成功!`)
-      
-      // 模拟添加新素材
-      this.materials.value.unshift({
-        id: Date.now(),
-        name: file.name,
-        type: this.getFileType(file.type),
-        url: URL.createObjectURL(file.raw),
-        size: file.size,
-        uploadTime: new Date()
-      })
+    getFileIcon(type) {
+      const icons = {
+        image: 'IMG',
+        document: 'DOC',
+        video: 'VID',
+        audio: 'AUD',
+        archive: 'ZIP'
+      };
+      return icons[type] || 'FILE';
     },
-    
-    handleUploadError(err) {
-      this.$message.error(`上传失败: ${err.message || '未知错误'}`)
+    getTypeName(type) {
+      const names = {
+        image: '图片',
+        document: '文档',
+        video: '视频',
+        audio: '音频',
+        archive: '压缩包'
+      };
+      return names[type] || '文件';
     },
-    
-    getFileType(mimeType) {
-      if (mimeType.startsWith('image/')) return 'image'
-      if (mimeType.startsWith('video/')) return 'video'
-      return 'ebook'
+    formatFileSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      else if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      else if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
+      else return (bytes / 1073741824).toFixed(1) + ' GB';
     },
-    
-    previewMaterial(item) {
-      this.previewMaterialInfo = { ...item }
-      this.previewDialogVisible = true
+    handleUpload() {
+      alert('上传功能将在后续版本中开放');
     },
-    
-    downloadMaterial(item) {
-      this.$message.info(`开始下载: ${item.name}`)
-      // 模拟下载
-      const link = document.createElement('a')
-      link.href = item.url
-      link.download = item.name
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+    downloadMaterial(material) {
+      alert(`开始下载: ${material.title}`);
     },
-    
-    deleteMaterial(id) {
-      this.$confirm('确定要删除这个素材吗?', '删除确认', {
-        confirmButtonText: '删除',
-        cancelButtonText: '取消',
-        type: 'warning'
-      }).then(() => {
-        const index = this.materials.value.findIndex(item => item.id === id)
-        if (index !== -1) {
-          this.materials.value.splice(index, 1)
-          this.$message.success('素材已删除')
-        }
-      }).catch(() => {})
+    copyLink(material) {
+      const link = `https://example.com/materials/${material.id}`;
+      navigator.clipboard.writeText(link).then(() => {
+        alert('链接已复制到剪贴板');
+      });
+    },
+    showMoreOptions(material) {
+      alert(`打开 ${material.title} 的更多选项`);
+    },
+    toggleFilterPanel() {
+      this.showFilterPanel = !this.showFilterPanel;
     }
   }
-}
+};
 </script>
 
-<!-- 将 SCSS 改为纯 CSS -->
 <style scoped>
-.material-manager {
-  padding: 20px;
-  background: #fff;
-  border-radius: 4px;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+/* 样式部分保持完整 */
+.material-management {
   height: 100%;
   display: flex;
   flex-direction: column;
 }
 
-.manager-header {
+.material-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
+  margin-bottom: 25px;
   padding-bottom: 15px;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #e0e6ed;
 }
 
-.header-actions {
+.page-title h1 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 5px;
+}
+
+.page-title p {
+  color: #666;
+  font-size: 14px;
+}
+
+.actions {
   display: flex;
-  align-items: center;
-  gap: 15px;
+  gap: 12px;
 }
 
-.type-select {
-  width: 150px;
+.btn {
+  padding: 8px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s;
+  font-size: 14px;
 }
 
-.search-input {
-  width: 250px;
+.btn-primary {
+  background-color: #409eff;
+  color: white;
 }
 
-.material-content {
+.btn-primary:hover {
+  background-color: #337ecc;
+}
+
+.btn-outline {
+  background: transparent;
+  border: 1px solid #dcdfe6;
+  color: #606266;
+}
+
+.btn-outline:hover {
+  background-color: #f5f7fa;
+}
+
+.content-wrapper {
+  display: flex;
+  gap: 20px;
+  flex: 1;
+  overflow: hidden;
+}
+
+.filter-panel {
+  width: 220px;
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  height: fit-content;
+  border: 1px solid #ebeef5;
+  transition: all 0.3s ease;
+}
+
+.filter-group {
+  margin-bottom: 18px;
+}
+
+.filter-group h3 {
+  font-size: 15px;
+  margin-bottom: 10px;
+  color: #606266;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.filter-options {
+  list-style: none;
+  padding: 0;
+}
+
+.filter-options li {
+  margin-bottom: 8px;
+}
+
+.filter-options a {
+  display: block;
+  padding: 6px 10px;
+  border-radius: 4px;
+  color: #606266;
+  text-decoration: none;
+  transition: all 0.2s;
+  font-size: 14px;
+}
+
+.filter-options a:hover {
+  background-color: #f0f7ff;
+  color: #409eff;
+}
+
+.filter-options a.active {
+  background-color: #ecf5ff;
+  color: #409eff;
+}
+
+.search-box {
+  position: relative;
+  margin-bottom: 15px;
+}
+
+.search-box input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+  font-size: 14px;
+}
+
+.material-container {
   flex: 1;
   overflow-y: auto;
+  padding-right: 8px;
 }
 
 .material-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 20px;
-  padding: 10px 0;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 18px;
 }
 
-.material-item {
-  border: 1px solid #eee;
-  border-radius: 4px;
+.material-card {
+  background: #fff;
+  border-radius: 8px;
   overflow: hidden;
-  transition: all 0.3s;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid #ebeef5;
 }
 
-.material-item:hover {
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  transform: translateY(-3px);
-}
-
-.material-item:hover .item-actions {
-  opacity: 1;
-}
-
-.material-preview {
-  position: relative;
-  height: 150px;
-  background: #f8f9fa;
+.card-thumb {
+  height: 140px;
+  background-color: #f0f4f8;
   display: flex;
   align-items: center;
   justify-content: center;
-  cursor: pointer;
-}
-
-.preview-image {
-  max-width: 100%;
-  max-height: 100%;
-  object-fit: contain;
-}
-
-.video-preview {
   position: relative;
-  width: 100%;
-  height: 100%;
+  overflow: hidden;
 }
 
-.video-preview .el-icon-video-play {
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 40px;
-  color: rgba(255, 255, 255, 0.7);
-  z-index: 2;
-}
-
-.video-preview .preview-video {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  opacity: 0.7;
-}
-
-.ebook-preview {
-  text-align: center;
-}
-
-.ebook-preview .el-icon-document {
-  font-size: 60px;
+.file-icon {
+  font-size: 36px;
   color: #409eff;
-}
-
-.ebook-preview span {
-  display: block;
-  margin-top: 10px;
-  font-size: 16px;
   font-weight: bold;
-  color: #666;
 }
 
-.item-actions {
+.card-tag {
   position: absolute;
-  bottom: 10px;
+  top: 10px;
   right: 10px;
-  display: flex;
-  gap: 5px;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.material-info {
-  padding: 12px;
-}
-
-.material-name {
+  background: rgba(255,255,255,0.95);
+  padding: 3px 8px;
+  border-radius: 30px;
+  font-size: 12px;
   font-weight: 500;
+  border: 1px solid #ebeef5;
+}
+
+.card-body {
+  padding: 16px;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 8px;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  min-height: 42px;
 }
 
-.material-meta {
+.card-meta {
   display: flex;
   justify-content: space-between;
-  margin-top: 8px;
-  font-size: 12px;
-  color: #999;
+  color: #909399;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: space-between;
+  border-top: 1px solid #ebeef5;
+  padding-top: 12px;
+}
+
+.action-btn {
+  color: #606266;
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.2s;
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.action-btn:hover {
+  background: #f5f7fa;
+  color: #409eff;
 }
 
 .empty-state {
   display: flex;
   flex-direction: column;
-  justify-content: center;
   align-items: center;
-  height: 60vh;
-}
-
-.preview-container {
-  display: flex;
   justify-content: center;
-  align-items: center;
-}
-
-.preview-full-image {
-  max-width: 100%;
-  max-height: 70vh;
-}
-
-.preview-full-video {
-  width: 100%;
-  max-height: 70vh;
-}
-
-.ebook-preview-large {
   text-align: center;
-  padding: 40px 0;
+  padding: 50px 30px;
+  background: #fff;
+  border-radius: 8px;
+  border: 1px solid #ebeef5;
 }
 
-.ebook-info {
-  margin-top: 20px;
+.empty-state h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+  color: #333;
 }
 
-.ebook-info p {
-  margin: 10px 0;
-  font-size: 16px;
+.empty-state p {
+  color: #666;
+  margin-bottom: 20px;
+  max-width: 400px;
 }
 
-/* 深度选择器兼容写法 */
-.material-uploader .el-upload {
-  width: 100%;
+/* 响应式设计 */
+@media (max-width: 992px) {
+  .content-wrapper {
+    flex-direction: column;
+  }
+  
+  .filter-panel {
+    width: 100%;
+  }
 }
 
-.material-uploader .el-upload .el-upload-dragger {
-  width: 100%;
-  padding: 40px 0;
+@media (max-width: 768px) {
+  .material-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .actions {
+    width: 100%;
+  }
+  
+  .btn {
+    flex: 1;
+    justify-content: center;
+  }
+  
+  .material-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+  
+  .filter-panel.mobile-hidden {
+    display: none;
+  }
 }
 </style>
