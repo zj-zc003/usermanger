@@ -81,188 +81,89 @@
 
           <!-- 素材展示区域 -->
           <div class="material-container">
-            <div class="material-grid">
-              <!-- 素材卡片 -->
-              <div 
-                v-for="(material, index) in filteredMaterials" 
-                :key="index"
-                class="material-card"
-                :style="{ 
-                  transform: hoverIndex === index ? 'translateY(-3px)' : 'none',
-                  boxShadow: hoverIndex === index ? '0 4px 12px rgba(0,0,0,0.08)' : '0 2px 8px rgba(0,0,0,0.06)'
-                }"
-                @mouseenter="hoverIndex = index"
-                @mouseleave="hoverIndex = -1"
-              >
-                <div class="card-thumb">
-                  <span class="file-icon">{{ getFileIcon(material.type) }}</span>
-                  <span class="card-tag">{{ getTypeName(material.type) }}</span>
-                </div>
-                <div class="card-body">
-                  <h3 class="card-title">{{ material.title }}</h3>
-                  <div class="card-meta">
-                    <span>{{ formatFileSize(material.size) }}</span>
-                    <span>{{ material.date }}</span>
+            <!-- 加载状态 -->
+            <div v-if="loading" class="loading-state">
+              <div class="loader"></div>
+              <p>正在加载素材数据...</p>
+            </div>
+            
+            <div v-else>
+              <div class="material-grid">
+                <!-- 素材卡片 -->
+                <div 
+                  v-for="(material, index) in filteredMaterials" 
+                  :key="material.id"
+                  class="material-card"
+                  :style="{ 
+                    transform: hoverIndex === index ? 'translateY(-3px)' : 'none',
+                    boxShadow: hoverIndex === index ? '0 4px 12px rgba(0,0,0,0.08)' : '0 2px 8px rgba(0,0,0,0.06)'
+                  }"
+                  @mouseenter="hoverIndex = index"
+                  @mouseleave="hoverIndex = -1"
+                >
+                  <div class="card-thumb">
+                    <span class="file-icon">{{ getFileIcon(material.file_type) }}</span>
+                    <span class="card-tag">{{ getTypeName(material.file_type) }}</span>
                   </div>
-                  <div class="card-actions">
-                    <button class="action-btn" @click="downloadMaterial(material)">下载</button>
-                    <button class="action-btn" @click="copyLink(material)">复制链接</button>
-                    <button class="action-btn" @click="showMoreOptions(material)">更多</button>
+                  <div class="card-body">
+                    <h3 class="card-title">{{ material.title }}</h3>
+                    <div class="card-meta">
+                      <span>{{ formatFileSize(material.file_size) }}</span>
+                      <span>{{ formatDate(material.created_at) }}</span>
+                    </div>
+                    <div class="card-meta">
+                      <span>下载: {{ material.download_count }}</span>
+                      <span>浏览: {{ material.view_count }}</span>
+                    </div>
+                    <div class="card-actions">
+                      <button class="action-btn" @click="downloadMaterial(material)">下载</button>
+                      <button class="action-btn" @click="copyLink(material)">复制链接</button>
+                      <button class="action-btn" @click="showMoreOptions(material)">更多</button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-            
-            <!-- 空状态提示 -->
-            <div v-if="filteredMaterials.length === 0" class="empty-state">
-              <h3>暂无素材</h3>
-              <p>点击"上传素材"按钮添加您的第一个素材</p>
-              <button class="btn btn-primary" @click="switchView('upload')">上传素材</button>
+              
+              <!-- 空状态提示 -->
+              <div v-if="filteredMaterials.length === 0" class="empty-state">
+                <h3>暂无素材</h3>
+                <p>点击"上传素材"按钮添加您的第一个素材</p>
+                <button class="btn btn-primary" @click="switchView('upload')">上传素材</button>
+              </div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- 上传视图 -->
-      <div v-if="activeView === 'upload'" class="file-uploader">
-        <div class="upload-header">
-          <h2>素材上传</h2>
-          <p>支持图片、文档和视频文件，最大100MB</p>
+      <div v-else-if="activeView === 'upload'" class="upload-view">
+        <div class="view-header">
           <button class="back-btn" @click="switchView('management')">
             &larr; 返回管理
           </button>
+          <h2>素材上传</h2>
         </div>
-
-        <!-- 文件选择区域 -->
-        <div class="upload-area">
-          <input 
-            type="file" 
-            id="fileInput" 
-            ref="fileInput"
-            @change="handleFileSelect" 
-            multiple
-            hidden
-          >
-          <label for="fileInput" class="file-select-btn">
-            <span>📁 选择文件</span>
-          </label>
-          
-          <div 
-            class="drop-zone" 
-            @dragover.prevent="handleDragOver"
-            @dragleave="handleDragLeave"
-            @drop.prevent="handleDrop"
-            :class="{ 'drag-active': isDragActive }"
-          >
-            <p>📤 拖拽文件到此处上传</p>
-          </div>
-        </div>
-
-        <!-- 文件元数据表单 -->
-        <div class="metadata-form" v-if="files.length > 0">
-          <div class="form-group">
-            <label for="category">分类：</label>
-            <select id="category" v-model="currentCategoryId" class="category-select">
-              <option value="">-- 请选择分类 --</option>
-              <option v-for="category in categories" :key="category.id" :value="category.id">
-                {{ category.name }}
-              </option>
-            </select>
-          </div>
-          
-          <div class="form-group" v-for="(file, index) in files" :key="file.id">
-            <div class="file-header">
-              <div class="file-icon">{{ getFileIcon(file.type) }}</div>
-              <div class="file-name">{{ file.name }}</div>
-            </div>
-            
-            <div class="file-metadata">
-              <div class="input-group">
-                <label :for="`title-${index}`">标题：</label>
-                <input 
-                  type="text" 
-                  :id="`title-${index}`" 
-                  v-model="file.metadata.title"
-                  placeholder="请输入标题（默认使用文件名）"
-                >
-              </div>
-              
-              <div class="input-group">
-                <label :for="`desc-${index}`">描述：</label>
-                <textarea 
-                  :id="`desc-${index}`" 
-                  v-model="file.metadata.description"
-                  placeholder="请输入文件描述"
-                ></textarea>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <!-- 文件列表展示 -->
-        <div class="file-list" v-if="files.length > 0">
-          <div class="file-item" v-for="(file, index) in files" :key="file.id">
-            <div class="file-info">
-              <div class="file-icon">
-                <span>{{ getFileIcon(file.type) }}</span>
-              </div>
-              <div class="file-details">
-                <div class="file-name">{{ file.name }}</div>
-                <div class="file-size">{{ formatSize(file.size) }}</div>
-                <div class="file-status" v-if="uploadStatuses[index]">
-                  {{ uploadStatuses[index] }}
-                </div>
-              </div>
-            </div>
-            
-            <div class="file-progress">
-              <div class="progress-bar">
-                <div 
-                  class="progress-fill" 
-                  :style="{ width: progress[index] + '%' }"
-                ></div>
-              </div>
-              <div class="progress-text">{{ progress[index] }}%</div>
-            </div>
-            
-            <button class="remove-btn" @click="removeFile(index)" :disabled="isUploading">
-              <span>×</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- 上传控制 -->
-        <div class="upload-controls">
-          <button 
-            class="upload-btn" 
-            @click="startUpload"
-            :disabled="files.length === 0 || isUploading"
-          >
-            <span>{{ uploadButtonText }}</span>
-          </button>
-          <button 
-            class="cancel-btn" 
-            @click="resetUpload"
-            v-if="files.length > 0 && !isUploading"
-          >
-            <span>取消</span>
-          </button>
-        </div>
-
-        <!-- 上传状态 -->
-        <div class="upload-status">
-          <div v-if="globalUploadStatus" :class="['status-message', statusClass]">
-            {{ globalUploadStatus }}
-          </div>
-        </div>
+        
+        <!-- 使用新的上传组件 -->
+        <file-uploader 
+          @upload-success="handleUploadSuccess"
+          @cancel="switchView('management')"
+          :categories="categories"
+        />
       </div>
     </main>
   </div>
 </template>
 
 <script>
+import axios from 'axios';
+import FileUploader from './FileUploader.vue'; // 导入新的上传组件
+
 export default {
   name: 'MaterialSystem',
+  components: {
+    FileUploader
+  },
   data() {
     return {
       // 视图控制
@@ -275,66 +176,10 @@ export default {
       sortBy: 'date',
       hoverIndex: -1,
       showFilterPanel: true,
-      materials: [
-        {
-          id: 1,
-          title: '2023年春季课程封面设计',
-          type: 'image',
-          size: 1200000,
-          date: '2023-02-15',
-          tags: ['course', 'common']
-        },
-        {
-          id: 2,
-          title: 'JavaScript高级编程讲义',
-          type: 'document',
-          size: 3400000,
-          date: '2023-03-10',
-          tags: ['course']
-        },
-        {
-          id: 3,
-          title: '618促销活动营销海报',
-          type: 'image',
-          size: 2100000,
-          date: '2023-05-20',
-          tags: ['marketing']
-        },
-        {
-          id: 4,
-          title: 'Vue3.0实战教学视频',
-          type: 'video',
-          size: 124000000,
-          date: '2023-04-05',
-          tags: ['course', 'common']
-        },
-        {
-          id: 5,
-          title: '产品功能介绍语音解说',
-          type: 'audio',
-          size: 8700000,
-          date: '2023-03-22',
-          tags: ['case']
-        },
-        {
-          id: 6,
-          title: '用户案例收集模板',
-          type: 'document',
-          size: 800000,
-          date: '2023-01-18',
-          tags: ['case']
-        }
-      ],
+      loading: true,
+      materials: [],
       
-      // 上传相关数据
-      files: [],
-      progress: [],
-      uploadStatuses: [],
-      isUploading: false,
-      globalUploadStatus: '',
-      isDragActive: false,
-      nextFileId: 1,
-      currentCategoryId: '',
+      // 筛选和分类数据
       categories: [
         { id: 1, name: '产品图片' },
         { id: 2, name: '宣传视频' },
@@ -359,7 +204,7 @@ export default {
       
       // 分类过滤
       if (this.activeCategory !== 'all') {
-        result = result.filter(m => m.type === this.activeCategory);
+        result = result.filter(m => m.file_type === this.activeCategory);
       }
       
       // 标签过滤
@@ -369,34 +214,59 @@ export default {
       
       // 排序
       if (this.sortBy === 'date') {
-        result.sort((a, b) => new Date(b.date) - new Date(a.date));
+        result.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
       } else if (this.sortBy === 'name') {
         result.sort((a, b) => a.title.localeCompare(b.title));
       } else if (this.sortBy === 'size') {
-        result.sort((a, b) => b.size - a.size);
+        result.sort((a, b) => b.file_size - a.file_size);
       }
       
       return result;
-    },
-    
-    // 上传计算属性
-    uploadButtonText() {
-      if (this.isUploading) return '上传中...';
-      return this.files.length > 0 ? `上传 ${this.files.length} 个文件` : '请选择文件';
-    },
-    statusClass() {
-      if (this.globalUploadStatus.includes('成功')) return 'success';
-      if (this.globalUploadStatus.includes('失败')) return 'error';
-      return 'info';
     }
+  },
+  mounted() {
+    this.loadMaterials();
   },
   methods: {
     // 视图切换方法
     switchView(view) {
       this.activeView = view;
-      // 切换到管理视图时重置上传状态
-      if (view === 'management') {
-        this.resetUpload();
+    },
+    
+    // 素材加载方法
+    async loadMaterials() {
+      try {
+        this.loading = true;
+        const response = await axios.get('/api/materials', {
+          params: {
+            sortBy: this.sortBy,
+            sortOrder: 'desc'
+          }
+        });
+        
+        this.materials = response.data.map(material => ({
+          ...material,
+          // 添加前端需要的额外字段
+          tags: material.category_id ? [this.getCategoryName(material.category_id)] : []
+        }));
+      } catch (error) {
+        console.error('加载素材失败:', error);
+      } finally {
+        this.loading = false;
+      }
+    },
+    
+    // 处理上传成功事件
+    handleUploadSuccess(successResults) {
+      // 刷新素材列表
+      this.loadMaterials();
+      
+      // 切换回管理视图
+      this.switchView('management');
+      
+      // 显示成功消息
+      if (successResults.length > 0) {
+        this.$message.success(`成功上传 ${successResults.length} 个素材`);
       }
     },
     
@@ -409,6 +279,7 @@ export default {
     },
     setSortBy(by) {
       this.sortBy = by;
+      this.loadMaterials(); // 重新加载数据
     },
     toggleFilterPanel() {
       this.showFilterPanel = !this.showFilterPanel;
@@ -439,182 +310,51 @@ export default {
       else if (bytes < 1073741824) return (bytes / 1048576).toFixed(1) + ' MB';
       else return (bytes / 1073741824).toFixed(1) + ' GB';
     },
+    formatDate(dateString) {
+      if (!dateString) return '';
+      const date = new Date(dateString);
+      return `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
+    },
     downloadMaterial(material) {
-      alert(`开始下载: ${material.title}`);
+      // 调用后端下载接口
+      axios.post(`/api/materials/${material.id}/download`)
+        .then(() => {
+          // 本地更新下载计数
+          material.download_count += 1;
+          
+          // 实际下载文件
+          const link = document.createElement('a');
+          link.href = material.file_url;
+          link.download = material.file_name;
+          document.body.appendChild(link);
+          link.click();
+          document.body.removeChild(link);
+        })
+        .catch(error => {
+          console.error('下载失败:', error);
+          this.$message.error('下载失败');
+        });
     },
     copyLink(material) {
-      const link = `https://example.com/materials/${material.id}`;
+      const link = material.file_url;
       navigator.clipboard.writeText(link).then(() => {
-        alert('链接已复制到剪贴板');
+        this.$message.success('链接已复制到剪贴板');
       });
     },
     showMoreOptions(material) {
-      alert(`打开 ${material.title} 的更多选项`);
+      this.$message.info(`打开 ${material.title} 的更多选项`);
     },
     
-    // 上传方法
-    handleFileSelect(e) {
-      const input = e.target;
-      if (input.files && input.files.length > 0) {
-        this.addFiles(Array.from(input.files));
-      }
-    },
-    handleDragOver() {
-      this.isDragActive = true;
-    },
-    handleDragLeave() {
-      this.isDragActive = false;
-    },
-    handleDrop(e) {
-      this.isDragActive = false;
-      if (e.dataTransfer?.files) {
-        this.addFiles(Array.from(e.dataTransfer.files));
-      }
-    },
-    addFiles(fileList) {
-      for (const file of fileList) {
-        // 检查文件大小（最大100MB）
-        if (file.size > 100 * 1024 * 1024) {
-          this.globalUploadStatus = `文件 ${file.name} 超过100MB大小限制`;
-          continue;
-        }
-
-        // 检查文件类型
-        const fileType = file.type.split('/')[0];
-        if (!['image', 'video', 'application'].includes(fileType)) {
-          this.globalUploadStatus = `不支持的文件类型: ${file.name}`;
-          continue;
-        }
-
-        // 添加到文件列表
-        this.files.push({
-          id: this.nextFileId++,
-          file,
-          name: file.name,
-          size: file.size,
-          type: fileType === 'application' ? 'document' : fileType,
-          metadata: {
-            title: '',
-            description: '',
-            categoryId: this.currentCategoryId
-          }
-        });
-        
-        // 初始化进度和状态
-        this.progress.push(0);
-        this.uploadStatuses.push('');
-      }
-    },
-    removeFile(index) {
-      this.files.splice(index, 1);
-      this.progress.splice(index, 1);
-      this.uploadStatuses.splice(index, 1);
-    },
-    resetUpload() {
-      this.files = [];
-      this.progress = [];
-      this.uploadStatuses = [];
-      this.isUploading = false;
-      this.globalUploadStatus = '';
-      this.currentCategoryId = '';
-    },
-    formatSize(bytes) {
-      if (bytes === 0) return '0 Bytes';
-      const k = 1024;
-      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-      const i = Math.floor(Math.log(bytes) / Math.log(k));
-      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    },
-    async startUpload() {
-      if (this.files.length === 0 || this.isUploading) return;
-      
-      this.isUploading = true;
-      this.globalUploadStatus = '开始上传文件...';
-      
-      // 重置所有上传状态
-      this.uploadStatuses = this.files.map(() => '等待上传');
-      this.progress = this.files.map(() => 0);
-
-      try {
-        // 模拟上传过程
-        const uploadPromises = this.files.map((file, index) => {
-          return this.simulateUpload(file, index);
-        });
-
-        // 等待所有文件上传完成
-        const results = await Promise.all(uploadPromises);
-        
-        // 统计上传结果
-        const successCount = results.filter(r => r.success).length;
-        const errorCount = results.filter(r => !r.success).length;
-        
-        this.globalUploadStatus = `上传完成: ${successCount} 个成功, ${errorCount} 个失败`;
-        
-        // 成功上传后添加到素材列表
-        results.filter(r => r.success).forEach(result => {
-          this.addToMaterialList(result.fileInfo);
-        });
-        
-      } catch (error) {
-        this.globalUploadStatus = `上传失败: ${error.message}`;
-      } finally {
-        this.isUploading = false;
-      }
-    },
-    async simulateUpload(fileInfo, index) {
-      try {
-        this.uploadStatuses[index] = '准备上传';
-        
-        // 模拟上传进度
-        const interval = setInterval(() => {
-          if (this.progress[index] < 95) {
-            this.progress[index] += 5;
-            this.uploadStatuses[index] = `上传中 (${this.progress[index]}%)`;
-          } else {
-            clearInterval(interval);
-          }
-        }, 300);
-        
-        // 模拟网络延迟
-        await new Promise(resolve => setTimeout(resolve, 2000));
-        clearInterval(interval);
-        
-        // 模拟上传成功
-        this.progress[index] = 100;
-        this.uploadStatuses[index] = '上传成功';
-        
-        return {
-          success: true,
-          fileInfo
-        };
-        
-      } catch (error) {
-        this.progress[index] = 0;
-        this.uploadStatuses[index] = '上传失败';
-        return {
-          success: false,
-          fileInfo,
-          error: error.message || '上传失败'
-        };
-      }
-    },
-    addToMaterialList(fileInfo) {
-      const newMaterial = {
-        id: Date.now(),
-        title: fileInfo.metadata.title || fileInfo.name,
-        type: fileInfo.type,
-        size: fileInfo.size,
-        date: new Date().toISOString().split('T')[0],
-        tags: fileInfo.metadata.categoryId ? [this.categories.find(c => c.id == fileInfo.metadata.categoryId)?.name] : []
-      };
-      
-      this.materials.unshift(newMaterial);
+    // 辅助方法
+    getCategoryName(categoryId) {
+      const category = this.categories.find(c => c.id === categoryId);
+      return category ? category.name : '未分类';
     }
   }
 };
 </script>
 
-<style>
+<style scoped>
 /* 全局样式 */
 * {
   box-sizing: border-box;
@@ -684,334 +424,40 @@ body {
 }
 
 /* 上传视图样式 */
-.file-uploader {
+.upload-view {
   max-width: 800px;
   margin: 0 auto;
 }
 
-.upload-header {
-  text-align: center;
-  margin-bottom: 25px;
+.view-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20px;
   position: relative;
 }
 
-.upload-header h2 {
+.view-header h2 {
+  flex-grow: 1;
+  text-align: center;
   color: #2c3e50;
-  margin-bottom: 8px;
-}
-
-.upload-header p {
-  color: #7f8c8d;
-  font-size: 0.95rem;
 }
 
 .back-btn {
-  position: absolute;
-  left: 0;
-  top: 0;
   background: transparent;
   border: none;
   color: #3498db;
   cursor: pointer;
-  font-size: 14px;
+  font-size: 16px;
   display: flex;
   align-items: center;
-}
-
-.upload-area {
-  display: flex;
-  gap: 15px;
-  margin-bottom: 25px;
-}
-
-.file-select-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 15px 25px;
-  background: #f8f9fa;
-  border: 2px dashed #3498db;
-  border-radius: 10px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  text-align: center;
-  width: 45%;
-  font-weight: 500;
-  color: #2c3e50;
-}
-
-.file-select-btn:hover {
-  background: #e3f2fd;
-  transform: translateY(-3px);
-}
-
-.drop-zone {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 15px;
-  background: #f8f9fa;
-  border: 2px dashed #95a5a6;
-  border-radius: 10px;
-  width: 55%;
-  transition: all 0.3s ease;
-}
-
-.drop-zone p {
-  color: #7f8c8d;
-  margin: 0;
-  text-align: center;
-}
-
-.drag-active {
-  background: #e3f2fd;
-  border-color: #3498db;
-}
-
-.drag-active p {
-  color: #3498db;
-}
-
-.metadata-form {
-  background: #f8f9fa;
-  padding: 20px;
-  border-radius: 10px;
-  margin-bottom: 20px;
-}
-
-.form-group {
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.form-group:last-child {
-  border-bottom: none;
-}
-
-.file-header {
-  display: flex;
-  align-items: center;
-  margin-bottom: 10px;
-}
-
-.file-header .file-icon {
-  font-size: 1.5rem;
-  margin-right: 10px;
-}
-
-.file-header .file-name {
-  font-weight: 500;
-  color: #2c3e50;
-}
-
-.input-group {
-  margin-bottom: 15px;
-}
-
-.input-group label {
-  display: block;
-  margin-bottom: 5px;
-  font-weight: 500;
-  color: #2c3e50;
-}
-
-.input-group input, 
-.input-group textarea,
-.input-group select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 6px;
-  font-size: 0.95rem;
-  background-color: #fff;
-}
-
-/* 增加下拉框选项的样式 */
-.category-select option {
-  padding: 8px;
-  background: #fff;
-}
-
-.input-group textarea {
-  min-height: 80px;
-  resize: vertical;
-}
-
-.file-list {
-  margin-top: 20px;
-}
-
-.file-item {
-  display: flex;
-  align-items: center;
-  padding: 15px;
-  margin-bottom: 12px;
-  background: #f8f9fa;
-  border-radius: 8px;
-  transition: all 0.3s ease;
-}
-
-.file-item:hover {
-  background: #edf2f7;
-}
-
-.file-info {
-  display: flex;
-  align-items: center;
-  flex: 1;
-}
-
-.file-info .file-icon {
-  width: 45px;
-  height: 45px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #e3f2fd;
-  border-radius: 8px;
-  margin-right: 15px;
-  font-size: 1.4rem;
-}
-
-.file-details {
-  flex: 1;
-}
-
-.file-name {
-  font-weight: 500;
-  color: #2c3e50;
-  margin-bottom: 3px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.file-size {
-  font-size: 0.85rem;
-  color: #7f8c8d;
-}
-
-.file-status {
-  font-size: 0.85rem;
-  color: #e74c3c;
-  margin-top: 3px;
-}
-
-.file-progress {
-  width: 200px;
-  margin: 0 15px;
-}
-
-.progress-bar {
-  height: 10px;
-  background: #e0e0e0;
-  border-radius: 5px;
-  overflow: hidden;
-}
-
-.progress-fill {
-  height: 100%;
-  background: #3498db;
-  transition: width 0.3s ease;
-}
-
-.progress-text {
-  font-size: 0.8rem;
-  text-align: center;
-  color: #7f8c8d;
-  margin-top: 5px;
-}
-
-.remove-btn {
-  background: none;
-  border: none;
-  color: #e74c3c;
-  cursor: pointer;
-  font-size: 1.5rem;
   padding: 5px 10px;
-  border-radius: 5px;
-  transition: all 0.2s ease;
+  position: absolute;
+  left: 0;
 }
 
-.remove-btn:hover {
-  background: #fce8e6;
-}
-
-.remove-btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.upload-controls {
-  display: flex;
-  justify-content: center;
-  gap: 15px;
-  margin-top: 25px;
-}
-
-.upload-btn, .cancel-btn {
-  padding: 12px 30px;
-  font-size: 1rem;
-  font-weight: 500;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  border: none;
-}
-
-.upload-btn {
-  background: #3498db;
-  color: white;
-}
-
-.upload-btn:hover {
-  background: #2980b9;
-  transform: translateY(-2px);
-}
-
-.upload-btn:disabled {
-  background: #bdc3c7;
-  cursor: not-allowed;
-  transform: none;
-}
-
-.cancel-btn {
-  background: #f8f9fa;
-  color: #e74c3c;
-  border: 1px solid #e0e0e0;
-}
-
-.cancel-btn:hover {
-  background: #fce8e6;
-  transform: translateY(-2px);
-}
-
-.upload-status {
-  margin-top: 20px;
-  text-align: center;
-}
-
-.status-message {
-  padding: 12px 20px;
-  border-radius: 8px;
-  font-weight: 500;
-  display: inline-block;
-}
-
-.status-message.success {
-  background: #e8f5e9;
-  color: #2e7d32;
-}
-
-.status-message.error {
-  background: #ffebee;
-  color: #c62828;
-}
-
-.status-message.info {
-  background: #e3f2fd;
-  color: #1565c0;
+.back-btn:hover {
+  background: #f0f7ff;
+  border-radius: 4px;
 }
 
 /* 素材管理视图样式 */
@@ -1217,7 +663,7 @@ body {
   justify-content: space-between;
   color: #909399;
   font-size: 13px;
-  margin-bottom: 12px;
+  margin-bottom: 5px;
 }
 
 .card-actions {
@@ -1225,6 +671,7 @@ body {
   justify-content: space-between;
   border-top: 1px solid #ebeef5;
   padding-top: 12px;
+  margin-top: 10px;
 }
 
 .action-btn {
@@ -1267,10 +714,28 @@ body {
   max-width: 400px;
 }
 
-.category-select:focus {
-  border-color: #3498db;
-  outline: none;
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
+/* 新增加载状态样式 */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 50px;
+}
+
+.loader {
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #3498db;
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+  margin-bottom: 15px;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 /* 响应式设计 */
@@ -1280,14 +745,6 @@ body {
   }
   
   .filter-panel {
-    width: 100%;
-  }
-  
-  .upload-area {
-    flex-direction: column;
-  }
-  
-  .file-select-btn, .drop-zone {
     width: 100%;
   }
 }
@@ -1305,7 +762,7 @@ body {
   
   .btn {
     flex: 1;
-    justify-content: center;
+    text-align: center;
   }
   
   .material-grid {

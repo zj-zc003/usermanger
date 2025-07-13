@@ -81,7 +81,7 @@ import { ref, markRaw } from 'vue'
 import { useAuthStore } from '@/store/auth'
 //import UserManagementView from '@/views/UserManagementView.vue'
 import UserView from '@/views/UserView.vue'
-import MaterialView from '@/views/MaterialView.vue'
+import MaterialView from '@/views/MaterialView3.vue'
 import CourseView from '@/views/CourseView.vue'
 import roleView from '@/views/RoleView.vue'
 
