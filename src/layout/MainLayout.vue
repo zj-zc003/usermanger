@@ -46,9 +46,9 @@
         >订单管理</div>
         <div 
           class="menu-item" 
-          :class="{active: activeMenu === 'setting'}" 
-          @click="setActiveMenu('setting')"
-        >系统设置</div>
+          :class="{active: activeMenu === 'partner'}" 
+          @click="setActiveMenu('partner')"
+        >合伙人管理</div>
         
         <div class="sub-header">其他功能</div>
         <div 
@@ -84,6 +84,7 @@ import UserView from '@/views/UserView.vue'
 import MaterialView from '@/views/MaterialView3.vue'
 import CourseView from '@/views/CourseView.vue'
 import roleView from '@/views/RoleView.vue'
+import partnerView from '@/views/partnerView.vue'
 
 const authStore = useAuthStore()
 
@@ -104,7 +105,9 @@ const setActiveMenu = (menu) => {
   }
   else if (menu === 'role') {
     currentComponent.value = markRaw(roleView)
-  }    
+  }else if (menu === 'partner') {
+    currentComponent.value = markRaw(partnerView)
+  }        
   
   else {
     currentComponent.value = markRaw({

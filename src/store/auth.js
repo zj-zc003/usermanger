@@ -6,6 +6,7 @@ export const useAuthStore = defineStore('auth', () => {
   const isAuthenticated = ref(false)
   const user = ref(null)
   const isLoading = ref(false)
+  const userId = ref(0)
   
   async function login(username, password) {
     try {
@@ -15,6 +16,7 @@ export const useAuthStore = defineStore('auth', () => {
       if (response.success) {
         isAuthenticated.value = true
         user.value = { username }
+        userId.value = response.userId
         return true
       } else {
         throw new Error(response.message || '登录失败')
@@ -37,6 +39,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated, 
     user, 
     isLoading,
+    userId,
     login, 
     logout 
   }

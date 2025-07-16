@@ -75,7 +75,7 @@ const handleLogin = async () => {
   
   try {
     errorMessage.value = ''
-    await authStore.login(username.value, password.value)
+    const res = await authStore.login(username.value, password.value)
   } catch (err) {
     errorMessage.value = err.message || '登录失败，请重试'
     setTimeout(() => { errorMessage.value = '' }, 3000)
