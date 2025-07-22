@@ -29,6 +29,7 @@ service.interceptors.request.use(
 service.interceptors.response.use(
   response => {
     // 对响应数据做处理
+    console.error(response)
     const res = response.data
     
     // 这里根据后端返回的数据结构调整

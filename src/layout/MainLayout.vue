@@ -90,7 +90,7 @@ import MaterialView from '@/views/MaterialView3.vue'
 import CourseView from '@/views/CourseView.vue'
 import roleView from '@/views/RoleView.vue'
 import partnerView from '@/views/partnerView.vue'
-import produceView from '@/views/ProduceView.vue'
+import produceView from '@/views/ProductView.vue'
 
 const authStore = useAuthStore()
 

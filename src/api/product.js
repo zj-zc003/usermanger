@@ -8,6 +8,21 @@ export const listProducts = (query) => {
   })
 }
 
+// 获取产品列表接口
+export function getProducts(params) {
+  return request({
+    url: '/api/admin/products',
+    method: 'get',
+    params: {
+      page: params.page,
+      size: params.size,
+      title: params.title,
+      status: params.status,
+      type: params.type
+    }
+  })
+}
+
 export const createProduct = (data) => {
   return request({
     url: '/api/admin/products',
