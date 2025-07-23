@@ -24,6 +24,69 @@
       </div>
       
     </div>
+    <!-- 在MaterialSystem组件中添加预览模态框 -->
+  <div class="preview-modal" v-if="showPreview && previewMaterial">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>{{ previewMaterial.title }}</h3>
+        <button class="close-btn" @click="closePreview">×</button>
+      </div>
+      
+      <div class="preview-container">
+        <!-- 图片预览 -->
+        <div v-if="previewMaterial.fileType === 'image'" class="image-preview">
+          <img :src="previewMaterial.fileUrl2" 
+               :alt="previewMaterial.title" 
+               ref="previewImage"
+               @load="imageLoaded = true">
+          <div v-if="!imageLoaded" class="loading-placeholder">
+            <div class="loader"></div>
+            <p>加载图片中...</p>
+          </div>
+          <div class="image-controls">
+            <button @click="zoomIn">放大</button>
+            <button @click="zoomOut">缩小</button>
+            <button @click="resetZoom">重置</button>
+          </div>
+        </div>
+        
+        <!-- 视频预览 -->
+        <div v-else-if="previewMaterial.fileType === 'video'" class="video-preview">
+          <video controls ref="videoPlayer">
+            <source :src="previewMaterial.fileUrl2" :type="getVideoType(previewMaterial.fileFormat)">
+            您的浏览器不支持视频播放
+          </video>
+        </div>
+        
+        <!-- PDF预览 -->
+        <div v-else-if="previewMaterial.fileFormat === 'pdf'" class="pdf-preview">
+          <iframe :src="`https://mozilla.github.io/pdf.js/web/viewer.html?file=${encodeURIComponent(previewMaterial.fileUrl2)}`" 
+                  frameborder="0"
+                  class="pdf-viewer"></iframe>
+        </div>
+        
+        <!-- 其他文件预览 -->
+        <div v-else class="generic-preview">
+          <div class="file-icon-large">{{ getFileIcon(previewMaterial.fileType) }}</div>
+          <p>此文件类型不支持预览</p>
+          <button class="download-btn" @click="downloadMaterial(previewMaterial)">下载文件</button>
+        </div>
+      </div>
+      
+      <div class="file-info">
+        <p><strong>文件类型：</strong> {{ getTypeName(previewMaterial.fileType) }} ({{ previewMaterial.fileFormat }})</p>
+        <p><strong>文件大小：</strong> {{ formatFileSize(previewMaterial.fileSize) }}</p>
+        <p><strong>上传时间：</strong> {{ formatDate(previewMaterial.createdAt) }}</p>
+        <p><strong>描述：</strong> {{ previewMaterial.description || '无描述' }}</p>
+      </div>
+      
+      <div class="modal-footer">
+        <button @click="downloadMaterial(previewMaterial)">下载</button>
+        <button @click="copyLink(previewMaterial)">复制链接</button>
+        <button class="close" @click="closePreview">关闭</button>
+      </div>
+    </div>
+  </div>
 
     <!-- 素材管理视图 -->
     <div v-if="activeView === 'management'" class="material-management">
@@ -165,6 +228,10 @@ export default {
   },
   data() {
     return {
+      showPreview: false,
+      previewMaterial: null,
+      imageLoaded: false,
+      zoomLevel: 1,
       activeView: 'management',
       loading: true,
       materials: [],
@@ -226,10 +293,86 @@ export default {
     }
   },
   mounted() {
-    this.loadMaterials();
     this.loadCategories();
+    this.loadMaterials();
   },
   methods: {
+    // 查看素材详情（预览）
+    viewMaterial(material) {
+      // 增加浏览量
+      this.incrementViewCount(material.id);
+      
+      // 打开预览
+      this.previewMaterial = material;
+      this.showPreview = true;
+      this.imageLoaded = false;
+      this.zoomLevel = 1;
+      
+      // 添加到预览历史
+      this.addToPreviewHistory(material);
+    },
+    
+    // 关闭预览
+    closePreview() {
+      this.showPreview = false;
+      this.previewMaterial = null;
+      
+      // 暂停视频播放
+      if (this.$refs.videoPlayer) {
+        this.$refs.videoPlayer.pause();
+      }
+    },
+    
+    // 图片放大
+    zoomIn() {
+      this.zoomLevel += 0.1;
+      this.$refs.previewImage.style.transform = `scale(${this.zoomLevel})`;
+    },
+    
+    // 图片缩小
+    zoomOut() {
+      if (this.zoomLevel > 0.2) {
+        this.zoomLevel -= 0.1;
+        this.$refs.previewImage.style.transform = `scale(${this.zoomLevel})`;
+      }
+    },
+    
+    // 重置缩放
+    resetZoom() {
+      this.zoomLevel = 1;
+      this.$refs.previewImage.style.transform = 'scale(1)';
+    },
+    
+    // 获取视频MIME类型
+    getVideoType(format) {
+      const types = {
+        'mp4': 'video/mp4',
+        'webm': 'video/webm',
+        'ogg': 'video/ogg',
+        'mov': 'video/quicktime'
+      };
+      return types[format.toLowerCase()] || 'video/mp4';
+    },
+    
+    // 添加到预览历史
+    addToPreviewHistory(material) {
+      const history = JSON.parse(localStorage.getItem('previewHistory') || '[]');
+      
+      // 避免重复添加
+      if (!history.some(item => item.id === material.id)) {
+        history.unshift({
+          id: material.id,
+          title: material.title,
+          fileType: material.fileType,
+          previewTime: new Date().toISOString()
+        });
+        
+        // 只保留最近的10条记录
+        if (history.length > 10) history.pop();
+        
+        localStorage.setItem('previewHistory', JSON.stringify(history));
+      }
+    },
     // 切换视图
     switchView(view) {
       this.activeView = view;
@@ -273,17 +416,23 @@ export default {
     
     // 加载分类数据
     async loadCategories() {
-      try {
-        const response = await axios.get(`${this.apiBaseUrl}/api/categories`);
-        this.categories = response.data;
-      } catch (error) {
-        console.error('获取分类失败:', error);
-        this.globalStatus = { 
-          type: 'warning', 
-          message: '获取分类失败，使用默认分类' 
-        };
-      }
-    },
+  try {
+    const response = await axios.get(`${this.apiBaseUrl}/api/categories`);
+    console.error(response.data)
+    // 确保响应是数组
+    this.categories = Array.isArray(response.data.data) 
+      ? response.data.data 
+      : [];
+      
+  } catch (error) {
+    console.error('获取分类失败:', error);
+    this.categories = []; // 确保始终是数组
+    this.globalStatus = { 
+      type: 'warning', 
+      message: '获取分类失败，使用默认分类' 
+    };
+  }
+},
     
     // 处理上传成功
     handleUploadSuccess(newMaterials) {
@@ -311,13 +460,13 @@ export default {
     },
     
     // 查看素材详情
-    viewMaterial(material) {
+    /*viewMaterial(material) {
       // 增加浏览量
       this.incrementViewCount(material.id);
       
       // 这里可以打开详情弹窗
       this.$emit('view-material', material);
-    },
+    },*/
     
     // 增加浏览量
     async incrementViewCount(id) {
@@ -339,7 +488,7 @@ export default {
         await axios.post(`${this.apiBaseUrl}/api/materials/${material.id}/download`);
         
         // 获取下载URL
-        const downloadUrl = material.fileUrl;
+        const downloadUrl = material.fileUrl2;
         
         // 创建临时链接下载
         const link = document.createElement('a');
@@ -369,7 +518,7 @@ export default {
     
     // 复制链接
     copyLink(material) {
-      navigator.clipboard.writeText(material.fileUrl)
+      navigator.clipboard.writeText(material.fileUrl2)
         .then(() => {
           this.globalStatus = {
             type: 'success',
@@ -784,5 +933,151 @@ export default {
   background: #fdf6ec;
   color: #e6a23c;
   border: 1px solid #faecd8;
+}
+/* 预览模态框样式 */
+.preview-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 900px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 15px 20px;
+  border-bottom: 1px solid #eee;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  color: #999;
+}
+
+.preview-container {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.image-preview {
+  width: 100%;
+  text-align: center;
+  overflow: auto;
+}
+
+.image-preview img {
+  max-width: 100%;
+  max-height: 60vh;
+  transition: transform 0.3s ease;
+}
+
+.image-controls {
+  margin-top: 15px;
+}
+
+.image-controls button {
+  margin: 0 5px;
+  padding: 5px 10px;
+  background: #f5f7fa;
+  border: 1px solid #dcdfe6;
+  border-radius: 4px;
+}
+
+.video-preview {
+  width: 100%;
+}
+
+.video-preview video {
+  width: 100%;
+  max-height: 60vh;
+}
+
+.pdf-preview {
+  width: 100%;
+  height: 60vh;
+}
+
+.pdf-viewer {
+  width: 100%;
+  height: 100%;
+}
+
+.generic-preview {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.file-icon-large {
+  font-size: 80px;
+  opacity: 0.7;
+  margin-bottom: 20px;
+}
+
+.download-btn {
+  margin-top: 15px;
+  padding: 8px 16px;
+  background: #409eff;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+.file-info {
+  padding: 15px 20px;
+  border-top: 1px solid #eee;
+  background: #f9f9f9;
+  font-size: 14px;
+}
+
+.modal-footer {
+  padding: 15px 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  border-top: 1px solid #eee;
+}
+
+.modal-footer button {
+  padding: 8px 16px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.modal-footer .close {
+  background: #f56c6c;
+  color: white;
+}
+
+.loading-placeholder {
+  min-height: 300px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 </style>

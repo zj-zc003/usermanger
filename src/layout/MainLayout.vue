@@ -51,6 +51,16 @@
         >合伙人管理</div>
         <div 
           class="menu-item" 
+          :class="{active: activeMenu === 'category'}" 
+          @click="setActiveMenu('category')"
+        >分类管理</div>
+        <div 
+          class="menu-item" 
+          :class="{active: activeMenu === 'chapter'}" 
+          @click="setActiveMenu('chapter')"
+        >章节管理</div>
+        <div 
+          class="menu-item" 
           :class="{active: activeMenu === 'produce'}" 
           @click="setActiveMenu('produce')"
         >知识产品管理</div>
@@ -91,6 +101,8 @@ import CourseView from '@/views/CourseView.vue'
 import roleView from '@/views/RoleView.vue'
 import partnerView from '@/views/partnerView.vue'
 import produceView from '@/views/ProductView.vue'
+import CategoryView from '@/views/CategoryView.vue'
+import ChapterView from '@/views/ChapterView.vue'
 
 const authStore = useAuthStore()
 
@@ -115,7 +127,11 @@ const setActiveMenu = (menu) => {
     currentComponent.value = markRaw(partnerView)
   }else if (menu === 'produce') {
     currentComponent.value = markRaw(produceView)
-  }          
+  }else if (menu === 'category') {
+    currentComponent.value = markRaw(CategoryView)
+  }else if (menu === 'chapter') {
+    currentComponent.value = markRaw(ChapterView)
+  }
   
   else {
     currentComponent.value = markRaw({

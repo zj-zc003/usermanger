@@ -1,12 +1,27 @@
 <template>
   <div class="chapter-management">
-    <el-row :gutter="20">
-      <el-col :span="16">
-        <!-- 章节树形结构 -->
-        <div class="card">
+    <div class="app-header">
+      <h1 class="app-title">课程章节管理</h1>
+      <div class="product-info">
+        <span class="product-name">{{ currentProduct.title }}</span>
+        <el-tag type="info" size="small">{{ currentProduct.teacher }}</el-tag>
+      </div>
+    </div>
+
+    <el-row :gutter="24" class="main-content">
+      <el-col :span="16" class="tree-container">
+        <div class="card tree-card">
           <div class="card-header">
-            <h3>{{ currentProduct.title }} - 章节管理</h3>
-            <el-button type="primary" icon="el-icon-plus" @click="openCreateDialog(0)">添加章节</el-button>
+            <h3 class="section-title">章节结构</h3>
+            <el-button 
+              type="primary" 
+              icon="el-icon-plus" 
+              size="small"
+              @click="openCreateDialog(0)"
+              class="add-chapter-btn"
+            >
+              添加章节
+            </el-button>
           </div>
           
           <el-tree
@@ -17,11 +32,20 @@
             :allow-drop="allowDrop"
             @node-drop="handleDrop"
             :expand-on-click-node="false"
+            @node-click="setSelectedChapter"
           >
-            <template #default="{ node, data }">
-              <div class="chapter-node">
+            <template #default="{ data }">
+              <div 
+                class="chapter-node" 
+                :class="{'selected': selectedChapter && selectedChapter.id === data.id}"
+              >
                 <div class="chapter-info">
-                  <el-tag size="small" :type="getContentTypeTag(data.contentType)">
+                  <el-tag 
+                    size="small" 
+                    :type="getContentTypeTag(data.contentType)"
+                    effect="dark"
+                    class="content-type-tag"
+                  >
                     {{ contentTypeMap[data.contentType] }}
                   </el-tag>
                   <span class="chapter-title">{{ data.title }}</span>
@@ -30,19 +54,25 @@
                     <span v-if="data.duration" class="duration">
                       <i class="el-icon-time"></i> {{ formatDuration(data.duration) }}
                     </span>
-                    <el-tag v-if="data.isFree" size="mini" type="success">免费</el-tag>
+                    <el-tag v-if="data.isFree" size="mini" type="success" class="free-tag">免费</el-tag>
                   </div>
                 </div>
                 
                 <div class="chapter-actions">
-                  <el-button size="small" icon="el-icon-edit" @click="openEditDialog(data)"></el-button>
-                  <el-button size="small" icon="el-icon-plus" @click="openCreateDialog(data.id)"></el-button>
                   <el-button 
+                    @click.stop="openEditDialog(data)"
+                  >编辑</el-button>
+                  <!--<el-button 
                     size="small" 
-                    icon="el-icon-delete" 
+                    icon="el-icon-plus" 
+                    circle 
+                    type="success"
+                    @click.stop="openCreateDialog(data.id)"
+                  ></el-button>-->
+                  <el-button 
                     type="danger"
-                    @click="deleteChapter(data.id)"
-                  ></el-button>
+                    @click.stop="deleteChapter(data.id)"
+                  >删除</el-button>
                 </div>
               </div>
             </template>
@@ -50,36 +80,62 @@
         </div>
       </el-col>
       
-      <el-col :span="8">
-        <!-- 多媒体预览区 -->
-        <div class="card">
+      <el-col :span="8" class="preview-container">
+        <div class="card preview-card">
           <div class="card-header">
-            <h3>多媒体预览</h3>
+            <h3 class="section-title">多媒体预览</h3>
           </div>
           
           <div class="preview-area">
             <div v-if="selectedChapter" class="preview-content">
-              <h4>{{ selectedChapter.title }}</h4>
-              
-              <div v-if="selectedChapter.contentType === 1" class="video-preview">
-                <video-player :src="selectedChapter.previewUrl" />
+              <div class="preview-header">
+                <h4>{{ selectedChapter.title }}</h4>
+                <el-tag :type="getContentTypeTag(selectedChapter.contentType)" size="small">
+                  {{ contentTypeMap[selectedChapter.contentType] }}
+                </el-tag>
               </div>
               
-              <div v-else-if="selectedChapter.contentType === 2" class="audio-preview">
-                <audio-player :src="selectedChapter.previewUrl" />
+              <div class="media-preview">
+                <div v-if="selectedChapter.contentType === 1" class="video-preview">
+                  <video-player :src="selectedChapter.previewUrl" />
+                </div>
+                
+                <div v-else-if="selectedChapter.contentType === 2" class="audio-preview">
+                  <audio-player :src="selectedChapter.previewUrl" />
+                </div>
+                
+                <div v-else-if="selectedChapter.contentType === 4" class="pdf-preview">
+                  <pdf-viewer :src="selectedChapter.previewUrl" :page-count="selectedChapter.pageCount" />
+                </div>
+                
+                <div v-else class="text-preview">
+                  <div class="text-content" v-html="selectedChapter.content"></div>
+                </div>
               </div>
               
-              <div v-else-if="selectedChapter.contentType === 4" class="pdf-preview">
-                <pdf-viewer :src="selectedChapter.previewUrl" :page-count="selectedChapter.pageCount" />
-              </div>
-              
-              <div v-else class="text-preview">
-                <div class="text-content" v-html="selectedChapter.content"></div>
+              <div class="chapter-details">
+                <div class="detail-item">
+                  <span class="detail-label">章节ID:</span>
+                  <span>{{ selectedChapter.id }}</span>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">是否免费:</span>
+                  <el-tag :type="selectedChapter.isFree ? 'success' : 'info'" size="small">
+                    {{ selectedChapter.isFree ? '免费' : '付费' }}
+                  </el-tag>
+                </div>
+                <div class="detail-item">
+                  <span class="detail-label">排序值:</span>
+                  <span>{{ selectedChapter.sort }}</span>
+                </div>
               </div>
             </div>
             
             <div v-else class="empty-preview">
-              <el-empty description="请选择章节进行预览" />
+              <div class="empty-content">
+                <i class="el-icon-picture-outline"></i>
+                <p>请选择章节进行预览</p>
+              </div>
             </div>
           </div>
         </div>
@@ -89,26 +145,52 @@
     <!-- 创建/编辑章节对话框 -->
     <el-dialog 
       :title="dialogTitle" 
-      :visible.sync="dialogVisible"
+      v-model:visible="dialogVisible"
       width="600px"
+      custom-class="chapter-dialog"
     >
-      <el-form :model="chapterForm" label-width="100px">
+      <el-form :model="chapterForm" label-width="100px" label-position="top">
         <el-form-item label="章节标题" required>
-          <el-input v-model="chapterForm.title" placeholder="输入章节标题" />
+          <el-input 
+            v-model="chapterForm.title" 
+            placeholder="输入章节标题" 
+            size="large"
+          />
         </el-form-item>
         
-        <el-form-item label="内容类型" required>
-          <el-select v-model="chapterForm.contentType" placeholder="选择内容类型">
-            <el-option 
-              v-for="(label, value) in contentTypeMap" 
-              :key="value"
-              :label="label"
-              :value="Number(value)"
-            />
-          </el-select>
-        </el-form-item>
+        <el-row :gutter="20">
+          <el-col :span="12">
+            <el-form-item label="内容类型" required>
+              <el-select 
+                v-model="chapterForm.contentType" 
+                placeholder="选择内容类型"
+                class="full-width"
+              >
+                <el-option 
+                  v-for="(label, value) in contentTypeMap" 
+                  :key="value"
+                  :label="label"
+                  :value="Number(value)"
+                />
+              </el-select>
+            </el-form-item>
+          </el-col>
+          <el-col :span="12">
+            <el-form-item label="排序值">
+              <el-input-number 
+                v-model="chapterForm.sort" 
+                :min="0" 
+                class="full-width"
+              />
+            </el-form-item>
+          </el-col>
+        </el-row>
         
-        <el-form-item label="上传文件" v-if="chapterForm.contentType !== 3">
+        <el-form-item 
+          label="上传文件" 
+          v-if="chapterForm.contentType !== 3"
+          class="upload-item"
+        >
           <el-upload
             class="upload-demo"
             action="#"
@@ -116,9 +198,15 @@
             :on-change="handleFileChange"
             :show-file-list="false"
           >
-            <el-button size="small" type="primary">选择文件</el-button>
+            <el-button size="small" type="primary" plain icon="el-icon-upload">
+              选择文件
+            </el-button>
             <div v-if="chapterForm.file" class="file-info">
+              <i class="el-icon-document"></i>
               {{ chapterForm.file.name }} ({{ formatFileSize(chapterForm.file.size) }})
+            </div>
+            <div v-else class="file-hint">
+              支持视频、音频、PDF格式文件
             </div>
           </el-upload>
         </el-form-item>
@@ -132,28 +220,31 @@
           />
         </el-form-item>
         
-        <el-form-item label="是否免费">
-          <el-switch v-model="chapterForm.isFree"></el-switch>
-        </el-form-item>
-        
-        <el-form-item label="排序值">
-          <el-input-number v-model="chapterForm.sort" :min="0" />
+        <el-form-item label="是否免费" class="free-switch">
+          <el-switch 
+            v-model="chapterForm.isFree" 
+            active-text="免费" 
+            inactive-text="付费" 
+          />
         </el-form-item>
       </el-form>
       
-      <span slot="footer">
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="saveChapter">保存</el-button>
-      </span>
+      <template #footer>
+        <span>
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="saveChapter">保存</el-button>
+        </span>
+      </template>
     </el-dialog>
   </div>
 </template>
 
 <script>
 import { ref, reactive, computed } from 'vue';
-import VideoPlayer from './components/VideoPlayer.vue';
-import AudioPlayer from './components/AudioPlayer.vue';
-import PdfViewer from './components/PdfViewer.vue';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import VideoPlayer from '@/components/VideoPlayer.vue';
+import AudioPlayer from '@/components/AudioPlayer.vue';
+import PdfViewer from '@/components/PdfViewer.vue';
 
 export default {
   components: {
@@ -211,7 +302,7 @@ export default {
         productId: 1001,
         title: '第二章 状态管理',
         contentType: 3, // 图文
-        content: '<p>Vuex 和 Pinia 是 Vue 生态中最流行的状态管理方案...</p>',
+        content: '<p>Vuex 和 Pinia 是 Vue 生态中最流行的状态管理方案。本章将深入比较两者的优缺点，并通过实际案例展示如何在不同场景下选择合适的状态管理方案。</p><p><strong>主要内容：</strong></p><ul><li>Vuex 核心概念与使用</li><li>Pinia 的现代化设计理念</li><li>模块化状态管理实践</li><li>性能优化技巧</li></ul>',
         isFree: false,
         sort: 2,
         parentId: 0,
@@ -241,6 +332,11 @@ export default {
     
     // 选中的章节
     const selectedChapter = ref(null);
+    
+    // 设置选中的章节
+    const setSelectedChapter = (data) => {
+      selectedChapter.value = data;
+    };
     
     // 对话框状态
     const dialogVisible = ref(false);
@@ -400,7 +496,7 @@ export default {
     };
     
     // 树形拖拽验证
-    const allowDrop = (draggingNode, dropNode, type) => {
+    const allowDrop = (draggingNode, dropNode) => {
       // 只允许同级拖拽
       return draggingNode.level === dropNode.level;
     };
@@ -455,89 +551,362 @@ export default {
       handleDrop,
       formatDuration,
       formatFileSize,
-      getContentTypeTag
+      getContentTypeTag,
+      setSelectedChapter
     };
   }
 };
 </script>
 
-<style scoped>
+<style scoped lang="scss">
 .chapter-management {
-  padding: 20px;
+  padding: 24px;
+  background-color: #f5f7fa;
+  min-height: 100vh;
+}
+
+.app-header {
+  margin-bottom: 24px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #4c84ff 0%, #2a5ebd 100%);
+  border-radius: 12px;
+  color: white;
+  box-shadow: 0 4px 12px rgba(42, 94, 189, 0.25);
+  
+  .app-title {
+    margin: 0;
+    font-weight: 600;
+    font-size: 24px;
+    display: flex;
+    align-items: center;
+    
+    &::before {
+      content: "";
+      display: inline-block;
+      width: 4px;
+      height: 24px;
+      background: white;
+      border-radius: 2px;
+      margin-right: 12px;
+    }
+  }
+  
+  .product-info {
+    display: flex;
+    align-items: center;
+    margin-top: 8px;
+    
+    .product-name {
+      font-size: 16px;
+      margin-right: 12px;
+      font-weight: 500;
+    }
+  }
+}
+
+.main-content {
+  margin-top: 16px;
 }
 
 .card {
-  background: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
-  margin-bottom: 20px;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+  }
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  border-bottom: 1px solid #eee;
+  padding: 16px 24px;
+  border-bottom: 1px solid #ebeef5;
+  background-color: #fafbfc;
+  
+  .section-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #303133;
+  }
+  
+  .add-chapter-btn {
+    border-radius: 20px;
+    padding: 8px 16px;
+    font-weight: 500;
+  }
+}
+
+.tree-container {
+  .tree-card {
+    height: calc(100vh - 220px);
+    display: flex;
+    flex-direction: column;
+    
+    :deep(.el-tree) {
+      flex: 1;
+      overflow: auto;
+      padding: 0 16px 16px;
+    }
+  }
+}
+
+.preview-container {
+  .preview-card {
+    height: calc(100vh - 220px);
+    display: flex;
+    flex-direction: column;
+    
+    .preview-area {
+      flex: 1;
+      overflow: auto;
+      padding: 0 16px 16px;
+    }
+  }
 }
 
 .chapter-node {
+  padding: 8px; /* 减少内边距 */
+  min-height: 42px; /* 设置最小高度 */
+  box-sizing: border-box; /* 确保尺寸计算包含内边距 */
+  
+  /* 保持其他样式不变 */
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
-  padding: 8px 0;
+  border-radius: 8px;
+  transition: background 0.3s ease;
+  
+  &:hover {
+    background-color: #f5f7fa;
+  }
+  
+  &.selected {
+    background-color: #ecf5ff;
+    border-left: 3px solid #409eff;
+  }
 }
 
+/* 调整章节信息区域的布局 */
 .chapter-info {
   display: flex;
   align-items: center;
   flex: 1;
+  gap: 8px; /* 增加元素间距 */
+  
+  .content-type-tag {
+    font-weight: 500;
+    min-width: 50px;
+    text-align: center;
+    flex-shrink: 0; /* 防止标签被压缩 */
+  }
 }
 
+/* 优化章节标题的显示 */
 .chapter-title {
-  margin: 0 10px;
   font-weight: 500;
+  color: #303133;
+  flex: 1; /* 允许标题根据需要扩展 */
+  min-width: 0; /* 允许文本截断 */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
+/* 调整元数据区域 */
 .chapter-meta {
   display: flex;
   align-items: center;
   gap: 8px;
   font-size: 12px;
-  color: #666;
+  color: #909399;
+  flex-shrink: 0; /* 防止元数据区域被压缩 */
+  
+  .duration {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap; /* 防止时间换行 */
+  }
+  
+  .free-tag {
+    font-weight: 500;
+    white-space: nowrap; /* 防止标签文字换行 */
+  }
 }
 
+/* 调整操作按钮 */
 .chapter-actions {
-  margin-left: 10px;
+  display: flex;
+  gap: 8px; /* 增加按钮间距 */
+  flex-shrink: 0; /* 防止按钮被压缩 */
+  
+  .el-button {
+    opacity: 0.7;
+    transition: opacity 0.3s;
+    padding: 6px 10px; /* 调整按钮内边距 */
+    font-size: 12px; /* 减小按钮字体大小 */
+    
+    &:hover {
+      opacity: 1;
+    }
+  }
 }
 
 .preview-area {
-  padding: 20px;
-  min-height: 500px;
+  .preview-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid #ebeef5;
+    
+    h4 {
+      margin: 0;
+      font-size: 18px;
+      color: #303133;
+    }
+  }
+  
+  .media-preview {
+    border-radius: 8px;
+    overflow: hidden;
+    background: #f8f9fa;
+    border: 1px solid #ebeef5;
+    
+    .video-preview, .audio-preview, .pdf-preview {
+      padding: 12px;
+    }
+    
+    .text-preview {
+      padding: 16px;
+      background: white;
+      
+      .text-content {
+        line-height: 1.8;
+        color: #606266;
+        
+        :deep(p) {
+          margin: 8px 0;
+        }
+        
+        :deep(ul) {
+          padding-left: 20px;
+          margin: 12px 0;
+        }
+        
+        :deep(li) {
+          margin-bottom: 6px;
+        }
+      }
+    }
+  }
+  
+  .chapter-details {
+    margin-top: 20px;
+    padding: 16px;
+    background: #f9fafc;
+    border-radius: 8px;
+    
+    .detail-item {
+      display: flex;
+      align-items: center;
+      margin-bottom: 12px;
+      
+      &:last-child {
+        margin-bottom: 0;
+      }
+      
+      .detail-label {
+        width: 80px;
+        color: #909399;
+        font-size: 14px;
+      }
+    }
+  }
 }
 
 .empty-preview {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 400px;
+  height: 100%;
+  text-align: center;
+  color: #909399;
+  
+  .empty-content {
+    padding: 40px;
+    
+    i {
+      font-size: 64px;
+      opacity: 0.3;
+      margin-bottom: 16px;
+      display: block;
+    }
+    
+    p {
+      margin: 0;
+      font-size: 16px;
+    }
+  }
 }
 
-.video-preview, .audio-preview {
-  margin-top: 15px;
+.upload-item {
+  :deep(.el-upload) {
+    width: 100%;
+  }
+  
+  .file-info {
+    margin-top: 12px;
+    padding: 10px;
+    background: #f5f7fa;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #606266;
+    font-size: 14px;
+  }
+  
+  .file-hint {
+    margin-top: 8px;
+    font-size: 12px;
+    color: #909399;
+  }
 }
 
-.text-preview {
-  margin-top: 15px;
-  padding: 10px;
-  border: 1px solid #eee;
-  border-radius: 4px;
+.free-switch {
+  :deep(.el-form-item__content) {
+    justify-content: flex-start;
+  }
 }
 
-.file-info {
-  margin-top: 8px;
-  font-size: 12px;
-  color: #666;
+.full-width {
+  width: 100%;
+}
+
+@media (max-width: 1200px) {
+  .el-col {
+    width: 100%;
+    max-width: 100%;
+    flex: 0 0 100%;
+  }
+  
+  .preview-container {
+    margin-top: 24px;
+  }
+}
+/* 为树节点添加垂直间距 */
+:deep(.el-tree-node__content) {
+  height: auto !important; /* 允许节点根据内容调整高度 */
+  margin-bottom: 4px; /* 节点之间的垂直间距 */
 }
 </style>

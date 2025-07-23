@@ -40,9 +40,10 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { ElMessage  } from 'element-plus'
 import { 
   createCategory, 
-  updateCategory, 
+  //updateCategory, 
   deleteCategory,
   getCategoryTree
 } from '@/api/category'
@@ -60,7 +61,7 @@ const loadCategories = async () => {
 }
 
 // 创建新分类
-const createCategory = async () => {
+async () => {
   await createCategory(newCategory.value)
   loadCategories()
   newCategory.value = { name: '', parentId: null }
@@ -68,7 +69,7 @@ const createCategory = async () => {
 }
 
 // 删除分类
-const deleteCategory = async (id) => {
+async (id) => {
   await deleteCategory(id)
   loadCategories()
   ElMessage.success('分类已删除')
